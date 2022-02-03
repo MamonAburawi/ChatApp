@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/users">
+
+    <fragment
+        android:id="@+id/users"
+        android:name="com.chatapp.info.screens.users.Users"
+        android:label="Users"
+        tools:layout="@layout/users">
+        <action
+            android:id="@+id/action_users_to_chat"
+            app:destination="@id/chat" />
+    </fragment>
+    <fragment
+        android:id="@+id/chat"
+        android:name="com.chatapp.info.screens.chat.Chat"
+        android:label="Chat"
+        tools:layout="@layout/chat">
+        <argument
+            android:name="user"
+            app:argType="com.chatapp.info.data.User" />
+    </fragment>
+</navigation>

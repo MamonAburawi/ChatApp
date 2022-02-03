@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+
+        <variable
+            name="user"
+            type="com.chatapp.info.data.User" />
+        <variable
+            name="chatViewModel"
+            type="com.chatapp.info.screens.chat.ChatViewModel" />
+    </data>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".screens.chat.Chat">
+
+
+
+
+
+
+
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:minHeight="?attr/actionBarSize"
+                android:background="@color/colorBlue"
+                android:theme="?attr/actionBarTheme">
+
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal">
+
+
+                    <ImageView
+                        android:id="@+id/btn_back"
+                        android:layout_width="@dimen/dimen_32"
+                        android:layout_height="@dimen/dimen_32"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_back" />
+
+
+                    <androidx.legacy.widget.Space
+                        android:layout_width="@dimen/dimen_8"
+                        android:layout_height="wrap_content" />
+
+                    <ImageView
+                        android:id="@+id/user_Image"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_account"
+                        app:tint="@color/colorWhite" />
+
+
+                    <androidx.legacy.widget.Space
+                        android:layout_width="@dimen/dimen_8"
+                        android:layout_height="wrap_content" />
+
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:weightSum="2"
+                        android:orientation="vertical">
+
+
+                        <TextView
+                            android:id="@+id/userName"
+                            android:layout_width="wrap_content"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:textColor="@color/colorWhite"
+                            android:layout_gravity="center"
+                            android:textSize="20sp"
+                            android:padding="2dp"
+                            android:text="@{user.name}"
+                            android:textStyle="bold"
+                            tools:text="User Name" />
+
+
+                        <androidx.legacy.widget.Space
+                            android:layout_width="wrap_content"
+                            android:layout_height="4dp" />
+
+
+                        <TextView
+                            android:id="@+id/chatState"
+                            android:layout_width="wrap_content"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:textColor="@color/colorWhite"
+                            android:layout_gravity="start"
+                            android:textSize="16sp"
+                            android:padding="1dp"
+                            tools:text="online"
+                            android:text="Online"/>
+
+
+                    </LinearLayout>
+
+
+                </LinearLayout>
+
+
+                <ImageView
+                    android:id="@+id/btn_Option"
+                    android:layout_width="@dimen/dimen_32"
+                    android:layout_height="@dimen/dimen_32"
+                    android:layout_gravity="end"
+                    android:layout_margin="4dp"
+                    android:src="@drawable/ic_more" />
+
+
+            </androidx.appcompat.widget.Toolbar>
+
+
+
+
+
+        <com.airbnb.epoxy.EpoxyRecyclerView
+            android:id="@+id/recyclerViewChat"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingTop="@dimen/dimen_4"
+            android:layout_marginTop="?attr/actionBarSize"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            app:reverseLayout="false"
+            app:stackFromEnd="true"
+            android:layout_marginBottom="85dp" />
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="85dp"
+            android:layout_gravity="bottom"
+            android:background="@color/colorWhite"
+            android:weightSum="8"
+            android:orientation="vertical">
+
+<!--            <View-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="0.8dp"-->
+<!--                android:background="#A13F8FE3" />-->
+
+
+
+            <EditText
+                android:id="@+id/message"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="4"
+                android:background="@color/colorWhite"
+                android:hint="@string/message"
+                android:paddingStart="@dimen/dimen_12"
+                android:paddingEnd="@dimen/dimen_12" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="4"
+                android:weightSum="10"
+                android:orientation="horizontal">
+
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="8"
+                    android:gravity="center|start"
+                    android:weightSum="4">
+
+                    <ImageView
+                        android:id="@+id/btn_Add"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/dimen_32"
+                        android:src="@drawable/ic_add"
+                        android:layout_weight="1"
+                        app:tint="@color/colorBlue"
+                        tools:ignore="NestedWeights" />
+
+
+                    <ImageView
+                        android:id="@+id/btnSelectImage"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/dimen_32"
+                        android:src="@drawable/ic_image"
+                        android:layout_weight="1"
+                        app:tint="@color/colorBlue" />
+
+                    <ImageView
+                        android:id="@+id/btn_camera"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/dimen_32"
+                        android:src="@drawable/ic_camera"
+                        android:layout_weight="1"
+                        app:tint="@color/colorBlue" />
+
+
+                </LinearLayout>
+
+
+                <ImageView
+                    android:id="@+id/btn_Send"
+                    android:layout_width="0dp"
+                    android:layout_weight="2"
+                    android:src="@drawable/ic_send"
+                    android:layout_height="match_parent" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </FrameLayout>
+</layout>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+        <variable
+            name="message"
+            type="com.chatapp.info.data.Message" />
+
+        <variable
+            name="clickListener"
+            type="android.view.View.OnClickListener" />
+
+    </data>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginBottom="4dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start"
+            android:orientation="vertical"
+            android:onClick="@{clickListener}"
+            android:padding="@dimen/dimen_4"
+            android:background="@drawable/recepient_round_white">
+
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                tools:text="Hi! Ahmed, how are you "
+                android:text="@{message.text}"
+                android:paddingBottom="8dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:textSize="16sp"
+                android:textAppearance="@style/Base.TextAppearance.AppCompat.Body1"
+                android:textColor="@color/colorBlack"
+                android:layout_gravity="end"
+                android:maxWidth="256dp" />
+
+            <TextView
+                android:id="@+id/time_receive"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                tools:text="12:12pm"
+                dateToString="@{message.time}"
+                android:textColor="@color/colorBlack"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:layout_gravity="bottom|start"
+                android:textSize="10sp"
+                tools:ignore="SmallSp" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+</layout>
