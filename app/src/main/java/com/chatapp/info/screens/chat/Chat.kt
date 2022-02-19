@@ -1,8 +1,9 @@
 package com.chatapp.info.screens.chat
 
+import android.annotation.SuppressLint
 import android.app.Activity
+import android.opengl.Visibility
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,6 +13,9 @@ import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.navArgs
+import androidx.work.WorkManager
+import com.airbnb.epoxy.EpoxyController
+import com.airbnb.epoxy.EpoxyRecyclerView
 import com.chatapp.info.*
 import com.chatapp.info.data.Message
 import com.chatapp.info.data.User
@@ -24,15 +28,24 @@ import kotlin.random.Random
 
 class Chat: Fragment() {
 
-
     private lateinit var viewModel: ChatViewModel
     private lateinit var binding : ChatBinding
     private lateinit var ctx : Activity
     private lateinit var userInfo: User
+
+    private var m: Message? = null
+
+    private var controller: EpoxyController? = null
+    private lateinit var withModels: Unit
+    private var oldMessages = ArrayList<Message>()
+    private var newMessages = ArrayList<Message>()
+    private var diff = ArrayList<Message>()
+
+
     private val senderId = FirebaseAuth.getInstance().currentUser!!.uid
 
-    private lateinit var list :  ArrayList<Message>
 
+    @SuppressLint("NotifyDataSetChanged")
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
 
 
@@ -43,7 +56,7 @@ class Chat: Fragment() {
         val factory = ChatViewModelFactory(ctx.application,userInfo)
 
         viewModel = ViewModelProvider(this,factory)[ChatViewModel::class.java]
-        list =  ArrayList()
+
 
 
 
@@ -51,15 +64,18 @@ class Chat: Fragment() {
         binding.apply {
 
             binding.user = userInfo
-
+            withModels = recyclerViewChat.withModels{
+                return@withModels
+            }
 
 
             /** button send **/
             btnSend.setOnClickListener {
                 val text = message.text.trim().toString()
                 if (text.isNotEmpty()){
-                    val m = Message(Random.nextLong(),text,Calendar.getInstance().time,senderId,userInfo.id,"", MessageType.TEXT)
-                    viewModel.addMessage(m)
+                    val mess = Message(Random.nextLong(),text,Calendar.getInstance().time,senderId,userInfo.id,"", MessageType.TEXT)
+                    m = mess
+                    viewModel.addMessage(mess)
                     message.setText("")
                 }
             }
@@ -71,25 +87,11 @@ class Chat: Fragment() {
             }
 
 
-            /** live data state **/
-            viewModel.messageState.observe(viewLifecycleOwner,{state->
-                if(state != null){
-                    when(state){
-                        MessageState.INSERT->{
-                           binding.recyclerViewChat.smoothScrollToPosition(90000000)
-                            Toast.makeText(ctx,"message inserted",Toast.LENGTH_SHORT).show()
-                        }
-                        MessageState.DELETE->{}
-                        MessageState.UPDATE->{}
-                    }
-                    viewModel.resetMessageState()
-                }
-            })
-
 
             /** live data messages **/
             viewModel.messages.observe(viewLifecycleOwner,{ messages ->
                 if (messages != null){
+                    oldMessages = messages as ArrayList<Message>
                     initRecyclerView(messages)
                 }else{
                     Toast.makeText(ctx,"no messages found!",Toast.LENGTH_SHORT).show()
@@ -99,21 +101,86 @@ class Chat: Fragment() {
 
 
 
+            /** send message worker info **/
+            viewModel.sendMessageWorkerId.observe(viewLifecycleOwner, { workerId ->
+                if (workerId != null){
+
+                    val worker = WorkManager.getInstance(requireActivity())
+                    worker.getWorkInfoByIdLiveData(workerId).observe(viewLifecycleOwner, {
+
+                        if (it.state.isFinished){ // message is sent successfully
+                            recyclerViewChat.smoothScrollToPosition(oldMessages.size + 2)
+
+//                            // TODO: fix this issue ..
+//                            recyclerViewChat.withModels {
+//
+//                                oldMessages.forEach {
+//
+//                                    m!!.text = "welocme bro how are you all"
+//                                    this.senderMessage {
+//                                        id(m!!.id)
+//                                        message(m)
+//
+//                                    }
+//
+//                                }
+//
+//
+//                            }
+//                            updateUI()
+//
+
+
+
+                        }
+
+                    })
+                }
+            })
+
+
+            /** remove message worker info **/
+            viewModel.removeMessageWorkerId.observe(viewLifecycleOwner,{ workerId ->
+                if (workerId != null){
+                    val worker = WorkManager.getInstance(requireActivity())
+                    worker.getWorkInfoByIdLiveData(workerId).observe(viewLifecycleOwner,{
+
+                        if (it.state.isFinished){ // message is removed successfully
+
+                        }
+
+                    })
+                }
+            })
+
+
+
+
         }
+
+
+
+
 
 
         return binding.root
     }
 
 
+    private fun updateUI(){
+        binding.recyclerViewChat.requestModelBuild()
+    }
+
 
     private fun initRecyclerView(messages: List<Message>){
         /** recycler view messages **/
         binding.recyclerViewChat.withModels {
-            messages.forEach { message ->
+            controller = this
+            messages.forEachIndexed { index, message ->
+
                 if (message.senderId == senderId){ // sender layout
 
-                    senderMessage {
+                    controller!!.senderMessage {
                         id(message.id)
                         message(message)
                         clickListener { v->
@@ -123,7 +190,7 @@ class Chat: Fragment() {
 
                 }else{ // recipient layout
 
-                    recipientMessage {
+                    controller!!.recipientMessage {
                         id(message.id)
                         message(message)
                         clickListener { v ->
@@ -131,15 +198,14 @@ class Chat: Fragment() {
                         }
                     }
                 }
+
             }
         }
 
     }
 
 
-    private fun updateUI(){
-        binding.recyclerViewChat.requestModelBuild()
-    }
+
 
     private fun navigateToBackScreen(){
         requireActivity().onBackPressed()
@@ -152,11 +218,10 @@ class Chat: Fragment() {
         popupMenu.menuInflater.inflate(R.menu.message_menu,popupMenu.menu)
         popupMenu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
-                R.id.itemDelete -> {
+                R.id.itemRemove -> {
 //                    list.remove(message)
+                    m = message
                     viewModel.removeMessage(message)
-                    Toast.makeText(ctx,"${message.text} is deleted!",Toast.LENGTH_SHORT).show()
-
                 }
             }
             true

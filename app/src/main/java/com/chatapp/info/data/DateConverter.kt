@@ -3,7 +3,7 @@ package com.chatapp.info.data
 import androidx.room.TypeConverter
 import java.util.*
 
-class DateConverter {
+object DateConverter {
     @TypeConverter
     fun from(value: Long?): Date? {
         return value?.let { Date(it) }

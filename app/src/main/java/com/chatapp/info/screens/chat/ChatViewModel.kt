@@ -3,12 +3,16 @@ package com.chatapp.info.screens.chat
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.*
+import androidx.work.*
 import com.chatapp.info.MessageState
 import com.chatapp.info.data.Chat
+import com.chatapp.info.data.DateConverter
 import com.chatapp.info.data.Message
 import com.chatapp.info.data.User
 import com.chatapp.info.genUUID
 import com.chatapp.info.repository.server.ChatRepositoryOnline
+import com.chatapp.info.workmanager.RemoveMessage
+import com.chatapp.info.workmanager.SendMessage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.*
@@ -21,6 +25,16 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
         const val TAG = "Chat"
     }
 
+    val worker by lazy {
+        WorkManager.getInstance(application)
+    }
+
+    private val sendMessageWorker by lazy {
+        OneTimeWorkRequest.Builder(SendMessage::class.java)
+    }
+    private val removeMessageWorker by lazy {
+        OneTimeWorkRequest.Builder(RemoveMessage::class.java)
+    }
 
     private val scopeIO = CoroutineScope(Dispatchers.IO + Job())
     private val scopeMain = CoroutineScope(Dispatchers.Main + Job())
@@ -39,7 +53,6 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
     private val _isMessageExist = MutableLiveData<Boolean>()
     val isMessageExist: LiveData<Boolean> = _isMessageExist
 
-
     private val _error = MutableLiveData<String>()
     val error: LiveData<String> = _error
 
@@ -50,8 +63,13 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
     // firebase authentication
     private val _auth = FirebaseAuth.getInstance()
 
-    private var list = ArrayList<Message>()
 
+    /** worker ids **/
+    private val _sendMessageWorkerId = MutableLiveData<UUID>()
+    val sendMessageWorkerId: LiveData<UUID> = _sendMessageWorkerId
+
+    private val _removeMessageWorkerId = MutableLiveData<UUID>()
+    val removeMessageWorkerId: LiveData<UUID> = _removeMessageWorkerId
 
 
     private var chatId = ""
@@ -69,64 +87,97 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
     }
 
 
-//    fun insert(message: Message){
-//        list.add(message)
-//        _messages.value = list
-//    }
-
     fun resetMessageState(){
         _messageState.value = null
     }
 
 
 
-    fun isMessageSent(message: Message,list: List<Message>){
-      
-    }
 
     fun addMessage(message: Message){
         _isMessageExist.value = false
+
         scopeIO.launch {
-            try {
-                chatsPath.document(chatId).collection("messages").document(message.id.toString())
-                    .set(message)
-                    .addOnCompleteListener {
-                        Log.i(TAG,"message is inserted")
-                        _messageState.value = MessageState.INSERT
 
-                    }.addOnFailureListener {
-                        Log.i(TAG,it.message.toString())
-                    }
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
 
-            }catch(ex:Exception){
-                Log.i(TAG,ex.message.toString())
+            val dateToLong = DateConverter.to(message.time)
+
+            val data = Data.Builder()
+            data.putLong("message_id",message.id)
+            data.putString("text",message.text)
+            data.putLong("date", dateToLong!!)
+            data.putString("sender_id",message.senderId)
+            data.putString("recipient_id",message.recipientId)
+            data.putString("image",message.image)
+            data.putString("type",message.type)
+            data.putString("chat_id",chatId)
+
+            sendMessageWorker.setInputData(data.build())
+            sendMessageWorker.setConstraints(constraints)
+
+            val builder = sendMessageWorker.build()
+
+            worker.beginWith(builder).enqueue()
+
+            withContext(Dispatchers.Main){
+                _sendMessageWorkerId.value = builder.id
             }
+
+//            Log.i("worker","sender message worker id: ${builder.id}")
+
         }
+
+
+
     }
 
 
     fun removeMessage(message: Message){
         scopeIO.launch {
-            try {
-                chatsPath.document(chatId)
-                    .collection("messages")
-                    .document(message.id.toString())
-                    .delete()
-                    .addOnSuccessListener {
-                        chatsPath.document().collection("messages").document(message.id.toString()).get()
-                            .addOnSuccessListener {
-                                if (it.exists()){}
-                                else{
-                                    Log.i(TAG,"message is removed")
-                                    _messageState.value = MessageState.DELETE
 
-                                }
-                            }
-                    }
-                    .addOnFailureListener {  Log.i(TAG,it.message.toString())}
-            }catch (ex: Exception){
-                Log.i(TAG,ex.message.toString())
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+
+            val data = Data.Builder()
+            data.putString("chat_id",chatId)
+            data.putString("message_id",message.id.toString())
+
+
+            removeMessageWorker.setInputData(data.build())
+            removeMessageWorker.setConstraints(constraints)
+
+            val builder = removeMessageWorker.build()
+
+            worker.beginWith(builder).enqueue()
+
+            withContext(Dispatchers.Main){
+                _removeMessageWorkerId.value = builder.id
             }
+
+//            try {
+//                chatsPath.document(chatId)
+//                    .collection("messages")
+//                    .document(message.id.toString())
+//                    .delete()
+//                    .addOnSuccessListener {
+//                        chatsPath.document().collection("messages").document(message.id.toString()).get()
+//                            .addOnSuccessListener {
+//                                if (it.exists()){}
+//                                else{
+//                                    Log.i(TAG,"message is removed")
+//                                    _messageState.value = MessageState.DELETE
+//
+//                                }
+//                            }
+//                    }
+//                    .addOnFailureListener {  Log.i(TAG,it.message.toString())}
+//            }catch (ex: Exception){
+//                Log.i(TAG,ex.message.toString())
+//            }
         }
     }
 

@@ -20,7 +20,7 @@ data class Message(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "message_id")
     val id: Long = 0L,
-    @ColumnInfo(name = "text", defaultValue = "") val text: String = "",
+    @ColumnInfo(name = "text", defaultValue = "") var text: String = "",
     @ColumnInfo(name = "time") val time: Date = Calendar.getInstance().time,
     @ColumnInfo(name = "sender_id") val senderId: String = "",
     @ColumnInfo(name = "recipient_id") val recipientId: String = "",
