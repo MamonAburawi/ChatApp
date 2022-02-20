@@ -18,11 +18,11 @@ import androidx.work.WorkManager
 import com.airbnb.epoxy.EpoxyController
 import com.chatapp.info.*
 import com.chatapp.info.data.Message
-import com.chatapp.info.data.MessageInfo
 import com.chatapp.info.data.User
 import com.chatapp.info.databinding.ChatBinding
 import com.google.firebase.auth.FirebaseAuth
 import gun0912.tedimagepicker.builder.TedImagePicker
+import gun0912.tedimagepicker.builder.type.MediaType
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.random.Random
@@ -34,19 +34,12 @@ class Chat: Fragment() {
     private lateinit var binding : ChatBinding
     private lateinit var ctx : Activity
     private lateinit var userInfo: User
-    private var selectedUriList: List<Uri>? = null
+    private var selectedUriList: ArrayList<Uri>? = null
 
     private var m: Message? = null
 
-    private var messagesInfo = ArrayList<MessageInfo>()
-
-    private var listMessageSending = ArrayList<Message>()
-
     private var controller: EpoxyController? = null
     private var oldMessages = ArrayList<Message>()
-    private var newMessages = ArrayList<Message>()
-    private var diff = ArrayList<Message>()
-
 
     private val senderId = FirebaseAuth.getInstance().currentUser!!.uid
 
@@ -57,13 +50,12 @@ class Chat: Fragment() {
 
         binding = DataBindingUtil.inflate(inflater, R.layout.chat,container,false)
         ctx = requireActivity()
+        utilContext = requireActivity()
 
         userInfo = navArgs<ChatArgs>().value.user
         val factory = ChatViewModelFactory(ctx.application,userInfo)
 
         viewModel = ViewModelProvider(this,factory)[ChatViewModel::class.java]
-
-
 
 
 
@@ -92,20 +84,7 @@ class Chat: Fragment() {
 
 
             /** button select image **/
-            btnSelectImage.setOnClickListener {
-
-                TedImagePicker.with(ctx)
-//                .mediaType(MediaType.IMAGE)
-                    //.scrollIndicatorDateFormat("YYYYMMDD")
-                    //.buttonGravity(ButtonGravity.BOTTOM)
-                    //.buttonBackground(R.drawable.btn_sample_done_button)
-//                .buttonTextColor(R.color.sample_yellow)
-                    .errorListener { message -> Log.d("ted", "message: $message") }
-                    .cancelListener { Log.d("ted", "image select cancel") }
-                    .selectedUri(selectedUriList)
-                    .startMultiImage { list: List<Uri> -> selectedUriList = list }
-
-            }
+            btnSelectImage.setOnClickListener { selectImages() }
 
 
             /** live data progress sending **/
@@ -124,9 +103,7 @@ class Chat: Fragment() {
             viewModel.messages.observe(viewLifecycleOwner,{ messages ->
                 if (messages != null){
                     oldMessages = messages as ArrayList<Message>
-
-                    initRecyclerView(messages)
-
+                    initChatItems(messages)
                 }else{
                     Toast.makeText(ctx,"no messages found!",Toast.LENGTH_SHORT).show()
                 }
@@ -138,29 +115,16 @@ class Chat: Fragment() {
             /** live data send message worker info **/
             viewModel.sendMessageWorkerId.observe(viewLifecycleOwner, { workerId ->
                 if (workerId != null){
-
                     val worker = WorkManager.getInstance(requireActivity())
                     worker.getWorkInfoByIdLiveData(workerId).observe(viewLifecycleOwner, {
-
                         val state = it.state.name
-
                         if (state == "RUNNING"){
                             Log.i("worker","send message is running..")
-
-
-//                            initRecyclerView(messagesInfo)
-
-
                         }
-
-
                         if (it.state.isFinished){ // message is sent successfully
                             recyclerViewChat.smoothScrollToPosition(oldMessages.size + 2)
-
                            viewModel.sendingComplete()
-
                         }
-
                     })
                 }
             })
@@ -172,11 +136,9 @@ class Chat: Fragment() {
                 if (workerId != null){
                     val worker = WorkManager.getInstance(requireActivity())
                     worker.getWorkInfoByIdLiveData(workerId).observe(viewLifecycleOwner,{
-
                         if (it.state.isFinished){ // message is removed successfully
 
                         }
-
                     })
                 }
             })
@@ -187,33 +149,49 @@ class Chat: Fragment() {
         }
 
 
-
-
-
-
         return binding.root
     }
 
-
-    private fun updateUI(){
-        binding.recyclerViewChat.requestModelBuild()
-    }
-
+    
 
     private fun selectImages(){
-
+        TedImagePicker.with(ctx)
+            .mediaType(MediaType.IMAGE)
+            .errorListener { message -> Log.d("ImagePicker", "message: $message") }
+            .cancelListener { Log.d("ImagePicker", "image select cancel") }
+            .selectedUri(selectedUriList)
+            .startMultiImage { list: List<Uri> -> initSelectedImages(list) }
     }
 
-    private fun initRecyclerView(messages: List<Message>){
+
+    private fun initSelectedImages(imagesList: List<Uri>) {
+        selectedUriList = imagesList as ArrayList<Uri>
+        binding.recyclerViewImages.visibility = View.VISIBLE
+        binding.recyclerViewImages.withModels {
+            imagesList.forEach { uri->
+                image {
+                    id(uri.toString()+"sf")
+                    selectImage(uri)
+                    btnClear { v->
+                        selectedUriList!!.remove(uri)
+                        requestModelBuild()
+                        Log.i("ImagePicker","image: $uri removed")
+                        if (selectedUriList!!.size <= 0){
+                           binding.recyclerViewImages.visibility = View.GONE
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    private fun initChatItems(messages: List<Message>){
         /** recycler view messages **/
         binding.recyclerViewChat.withModels {
             controller = this
             messages.forEachIndexed { index, message ->
-
-//                messagesInfo.add(MessageInfo(index,messageInfo.message,false))
-
                 if (message.senderId == senderId){ // sender layout
-
                     controller!!.senderMessage {
                         id(message.id)
                         message(message)
@@ -221,21 +199,7 @@ class Chat: Fragment() {
                             pupUpMenu(v,message)
                         }
                     }
-
-
-//                    controller!!.senderMessageProgress {
-//                        id(messageInfo.message.id)
-//                        message(messageInfo.message)
-//                        clickListener{ v->
-//
-//                        }
-//                    }
-
-
-
-
                 }else{ // recipient layout
-
                     controller!!.recipientMessage {
                         id(message.id)
                         message(message)
@@ -244,10 +208,8 @@ class Chat: Fragment() {
                         }
                     }
                 }
-
             }
         }
-
     }
 
 
@@ -265,7 +227,6 @@ class Chat: Fragment() {
         popupMenu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.itemRemove -> {
-//                    list.remove(message)
                     m = message
                     viewModel.removeMessage(message)
                 }

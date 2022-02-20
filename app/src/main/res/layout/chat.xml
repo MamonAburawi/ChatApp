@@ -19,11 +19,6 @@
         tools:context=".screens.chat.Chat">
 
 
-
-
-
-
-
             <androidx.appcompat.widget.Toolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
@@ -122,27 +117,38 @@
             </androidx.appcompat.widget.Toolbar>
 
 
-
-
-
-        <com.airbnb.epoxy.EpoxyRecyclerView
-            android:id="@+id/recyclerViewChat"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingTop="@dimen/dimen_4"
             android:layout_marginTop="?attr/actionBarSize"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-            app:reverseLayout="false"
-            app:stackFromEnd="true"
-            android:layout_marginBottom="85dp" />
+            android:layout_marginBottom="100dp"
+            android:weightSum="10"
+            android:orientation="vertical">
+
+
+            <com.airbnb.epoxy.EpoxyRecyclerView
+                android:id="@+id/recyclerViewChat"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingTop="@dimen/dimen_4"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                app:reverseLayout="false"
+                app:stackFromEnd="true" />
+
+
+
+        </LinearLayout>
+
+
+
+
 
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="85dp"
+            android:layout_height="wrap_content"
             android:layout_gravity="bottom"
             android:background="@color/colorWhite"
-            android:weightSum="8"
             android:orientation="vertical">
 
 <!--            <View-->
@@ -150,11 +156,21 @@
 <!--                android:layout_height="0.8dp"-->
 <!--                android:background="#A13F8FE3" />-->
 
+            <com.airbnb.epoxy.EpoxyRecyclerView
+                android:id="@+id/recyclerViewImages"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginEnd="5dp"
+                android:layout_marginStart="5dp"
+                android:orientation="horizontal"
+                android:visibility="gone"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                app:itemSpacing="5dp"/>
+
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="4"
+                android:layout_height="50dp"
                 android:orientation="horizontal">
 
 
@@ -183,25 +199,22 @@
 
 
 
-            <LinearLayout
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="4"
-                android:weightSum="10"
-                android:orientation="horizontal">
+                android:layout_height="50dp">
 
 
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:layout_weight="8"
+                    android:layout_marginEnd="50dp"
                     android:gravity="center|start"
-                    android:weightSum="4">
+                    android:weightSum="3">
 
                     <ImageView
                         android:id="@+id/btn_Add"
                         android:layout_width="0dp"
-                        android:layout_height="@dimen/dimen_32"
+                        android:layout_height="@dimen/dimen_40"
                         android:src="@drawable/ic_add"
                         android:layout_weight="1"
                         app:tint="@color/colorBlue"
@@ -211,16 +224,8 @@
                     <ImageView
                         android:id="@+id/btnSelectImage"
                         android:layout_width="0dp"
-                        android:layout_height="@dimen/dimen_32"
+                        android:layout_height="@dimen/dimen_40"
                         android:src="@drawable/ic_image"
-                        android:layout_weight="1"
-                        app:tint="@color/colorBlue" />
-
-                    <ImageView
-                        android:id="@+id/btn_camera"
-                        android:layout_width="0dp"
-                        android:layout_height="@dimen/dimen_32"
-                        android:src="@drawable/ic_camera"
                         android:layout_weight="1"
                         app:tint="@color/colorBlue" />
 
@@ -230,12 +235,12 @@
 
                 <ImageView
                     android:id="@+id/btn_Send"
-                    android:layout_width="0dp"
-                    android:layout_weight="2"
+                    android:layout_width="50dp"
+                    android:layout_gravity="end|center"
                     android:src="@drawable/ic_send"
-                    android:layout_height="match_parent" />
+                    android:layout_height="@dimen/dimen_40" />
 
-            </LinearLayout>
+            </FrameLayout>
 
         </LinearLayout>
 

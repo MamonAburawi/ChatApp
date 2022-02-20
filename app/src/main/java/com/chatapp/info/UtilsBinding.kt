@@ -1,10 +1,16 @@
 package com.chatapp.info
 
+import android.net.Uri
 import android.text.format.DateFormat
+import android.view.LayoutInflater
 import android.view.View
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.databinding.BindingAdapter
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.RequestOptions
+import com.chatapp.info.databinding.ItemImageBinding
 import java.util.*
 
 @BindingAdapter("dateToString")
@@ -25,3 +31,5 @@ fun isMessageSent(progress: ProgressBar,isSending: Boolean?){
         progress.visibility = View.GONE
     }
 }
+
+
