@@ -70,41 +70,70 @@ class Users : Fragment() {
                 pupUpMenu(btnOption)
             }
 
-            /** edit text search **/
-            search.addTextChangedListener(object : TextWatcher{
-                override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
 
-                override fun onTextChanged(charSequence: CharSequence?, p1: Int, p2: Int, p3: Int) {
-                    if (charSequence != null){
-                        val char = charSequence.toString().lowercase()
-                        viewModel.filter(char){ users ->
+            /** button search **/
+            btnSearch.setOnClickListener {
 
-                            recyclerViewUsers.withModels {
+                val search = search.text.trim().toString().lowercase()
+                viewModel.filter(search){ users ->
 
-                                val l = users as ArrayList<User>
-                                l.remove(viewModel.currentUser())
-                                l.forEach { user->
-                                    user{
-                                        id(user.id)
-                                        user(user)
-                                        clickListener { v ->
-                                            findNavController().navigate(UsersDirections.actionUsersToChat(user))
-                                        }
-                                    }
+                    recyclerViewUsers.withModels {
 
+                        val l = users as ArrayList<User>
+                        l.remove(viewModel.currentUser())
+                        l.forEach { user->
+                            user{
+                                id(user.id)
+                                user(user)
+                                clickListener { v ->
+                                    findNavController().navigate(UsersDirections.actionUsersToChat(user))
                                 }
-
                             }
-                        }
-                    }
 
+                        }
+
+                    }
                 }
 
-                override fun afterTextChanged(p0: Editable?) {}
-
-            })
+            }
 
 
+
+//            /** edit text search **/
+//            search.addTextChangedListener(object : TextWatcher{
+//                override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+//
+//                override fun onTextChanged(charSequence: CharSequence?, p1: Int, p2: Int, p3: Int) {
+//                    if (charSequence != null){
+//                        val char = charSequence.toString().lowercase()
+//                        viewModel.filter(char){ users ->
+//
+//                            recyclerViewUsers.withModels {
+//
+//                                val l = users as ArrayList<User>
+//                                l.remove(viewModel.currentUser())
+//                                l.forEach { user->
+//                                    user{
+//                                        id(user.id)
+//                                        user(user)
+//                                        clickListener { v ->
+//                                            findNavController().navigate(UsersDirections.actionUsersToChat(user))
+//                                        }
+//                                    }
+//
+//                                }
+//
+//                            }
+//                        }
+//                    }
+//
+//                }
+//
+//                override fun afterTextChanged(p0: Editable?) {}
+//
+//            })
+//
+//
 
 
 

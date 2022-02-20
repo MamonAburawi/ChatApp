@@ -2,6 +2,7 @@ package com.chatapp.info.screens.chat
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -21,6 +22,7 @@ import com.chatapp.info.data.MessageInfo
 import com.chatapp.info.data.User
 import com.chatapp.info.databinding.ChatBinding
 import com.google.firebase.auth.FirebaseAuth
+import gun0912.tedimagepicker.builder.TedImagePicker
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.random.Random
@@ -32,6 +34,7 @@ class Chat: Fragment() {
     private lateinit var binding : ChatBinding
     private lateinit var ctx : Activity
     private lateinit var userInfo: User
+    private var selectedUriList: List<Uri>? = null
 
     private var m: Message? = null
 
@@ -87,6 +90,22 @@ class Chat: Fragment() {
                 navigateToBackScreen()
             }
 
+
+            /** button select image **/
+            btnSelectImage.setOnClickListener {
+
+                TedImagePicker.with(ctx)
+//                .mediaType(MediaType.IMAGE)
+                    //.scrollIndicatorDateFormat("YYYYMMDD")
+                    //.buttonGravity(ButtonGravity.BOTTOM)
+                    //.buttonBackground(R.drawable.btn_sample_done_button)
+//                .buttonTextColor(R.color.sample_yellow)
+                    .errorListener { message -> Log.d("ted", "message: $message") }
+                    .cancelListener { Log.d("ted", "image select cancel") }
+                    .selectedUri(selectedUriList)
+                    .startMultiImage { list: List<Uri> -> selectedUriList = list }
+
+            }
 
 
             /** live data progress sending **/
@@ -180,6 +199,10 @@ class Chat: Fragment() {
         binding.recyclerViewChat.requestModelBuild()
     }
 
+
+    private fun selectImages(){
+
+    }
 
     private fun initRecyclerView(messages: List<Message>){
         /** recycler view messages **/

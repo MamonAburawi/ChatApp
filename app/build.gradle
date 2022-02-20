@@ -45,6 +45,7 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.3'
     implementation 'androidx.navigation:navigation-fragment-ktx:2.4.0'
     implementation 'androidx.navigation:navigation-ui-ktx:2.4.0'
+    implementation project(path: ':ImagePicker')
 
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
@@ -91,8 +92,15 @@ dependencies {
     // Firebase FireStore..
     implementation 'com.google.firebase:firebase-firestore-ktx:24.0.1'
 
+    // firebase storage
+    implementation 'com.google.firebase:firebase-storage-ktx:20.0.0'
+
+
     // work manager
     implementation 'androidx.work:work-runtime-ktx:2.7.1'
+
+
+
 
 
 }

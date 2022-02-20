@@ -9,7 +9,7 @@ import com.chatapp.info.screens.chat.ChatViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 
 
-class RemoveMessage(context : Context, paramsWorker: WorkerParameters) : CoroutineWorker(context,paramsWorker) {
+class RemoveMessageWork(context : Context, paramsWorker: WorkerParameters) : CoroutineWorker(context,paramsWorker) {
 
     // firebase fire store
     private val _root = FirebaseFirestore.getInstance()

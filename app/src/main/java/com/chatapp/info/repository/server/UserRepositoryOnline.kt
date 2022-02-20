@@ -16,4 +16,5 @@ class UserRepositoryOnline() {
     suspend fun updateUserData(path: DocumentReference,field: String , data: Any) = database.updateField(path,field, data)
 
     suspend fun addNewUser(path: DocumentReference,user: Any) = database.add(path,user)
+
 }

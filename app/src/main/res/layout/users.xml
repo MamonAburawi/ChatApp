@@ -75,6 +75,7 @@
                 android:background="@drawable/bg_search">
 
                 <ImageView
+                    android:id="@+id/btn_Search"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
@@ -114,6 +115,14 @@
 
 
 
+        <TextView
+            android:id="@+id/tv_noData"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="no data found"
+            android:layout_gravity="center"
+            android:visibility="gone"
+            android:textSize="@dimen/dimen_20"/>
 
 
 

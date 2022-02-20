@@ -11,7 +11,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.delay
 import java.util.*
 
-class SendMessage(context : Context, paramsWorker: WorkerParameters) : CoroutineWorker(context,paramsWorker) {
+class SendMessageWork(context : Context, paramsWorker: WorkerParameters) : CoroutineWorker(context,paramsWorker) {
 
     // firebase fire store
     private val _root = FirebaseFirestore.getInstance()

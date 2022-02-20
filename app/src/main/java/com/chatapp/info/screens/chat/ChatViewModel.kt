@@ -10,8 +10,8 @@ import com.chatapp.info.data.Message
 import com.chatapp.info.data.User
 import com.chatapp.info.genUUID
 import com.chatapp.info.repository.server.ChatRepositoryOnline
-import com.chatapp.info.workmanager.RemoveMessage
-import com.chatapp.info.workmanager.SendMessage
+import com.chatapp.info.workmanager.RemoveMessageWork
+import com.chatapp.info.workmanager.SendMessageWork
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.*
@@ -23,15 +23,15 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
         const val TAG = "Chat"
     }
 
-    val worker by lazy {
+    private val worker by lazy {
         WorkManager.getInstance(application)
     }
 
     private val sendMessageWorker by lazy {
-        OneTimeWorkRequest.Builder(SendMessage::class.java)
+        OneTimeWorkRequest.Builder(SendMessageWork::class.java)
     }
     private val removeMessageWorker by lazy {
-        OneTimeWorkRequest.Builder(RemoveMessage::class.java)
+        OneTimeWorkRequest.Builder(RemoveMessageWork::class.java)
     }
 
     private val scopeIO = CoroutineScope(Dispatchers.IO + Job())
@@ -69,9 +69,7 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
     private val _removeMessageWorkerId = MutableLiveData<UUID>()
     val removeMessageWorkerId: LiveData<UUID> = _removeMessageWorkerId
 
-
     private var chatId = ""
-    private var currentMessage: Message? = null
 
     init {
         _progress.value = false

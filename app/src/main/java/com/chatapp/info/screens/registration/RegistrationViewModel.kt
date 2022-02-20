@@ -46,10 +46,6 @@ class RegistrationViewModel : ViewModel() {
 
 
 
-
-
-
-
     fun registration(user: User){
         _inProgress.value = true
         try {
