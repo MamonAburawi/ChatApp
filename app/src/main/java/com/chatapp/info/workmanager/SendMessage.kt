@@ -8,6 +8,7 @@ import com.chatapp.info.data.DateConverter
 import com.chatapp.info.data.Message
 import com.chatapp.info.screens.chat.ChatViewModel
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.delay
 import java.util.*
 
 class SendMessage(context : Context, paramsWorker: WorkerParameters) : CoroutineWorker(context,paramsWorker) {

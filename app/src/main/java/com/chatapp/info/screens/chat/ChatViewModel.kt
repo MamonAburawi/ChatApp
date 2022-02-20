@@ -4,7 +4,6 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.*
 import androidx.work.*
-import com.chatapp.info.MessageState
 import com.chatapp.info.data.Chat
 import com.chatapp.info.data.DateConverter
 import com.chatapp.info.data.Message
@@ -17,7 +16,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.*
 import java.util.*
-import kotlin.collections.ArrayList
 
 class ChatViewModel(application: Application,val user: User) : AndroidViewModel(application) {
 
@@ -50,8 +48,8 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
     private val _messageState = MutableLiveData<String?>()
     val messageState: LiveData<String?> = _messageState
 
-    private val _isMessageExist = MutableLiveData<Boolean>()
-    val isMessageExist: LiveData<Boolean> = _isMessageExist
+    private val _isSending = MutableLiveData<Boolean?>()
+    val isSending: LiveData<Boolean?> = _isSending
 
     private val _error = MutableLiveData<String>()
     val error: LiveData<String> = _error
@@ -77,7 +75,7 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
 
     init {
         _progress.value = false
-        _isMessageExist.value = false
+        _isSending.value = null
 
         createNewChatId { id->
             chatId = id
@@ -92,10 +90,17 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
     }
 
 
+//    fun sending(){
+//        _isSending.value = true
+//    }
+
+    fun sendingComplete(){
+        _isSending.value = false
+    }
 
 
     fun addMessage(message: Message){
-        _isMessageExist.value = false
+        _isSending.value = true
 
         scopeIO.launch {
 
@@ -146,7 +151,6 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
             data.putString("chat_id",chatId)
             data.putString("message_id",message.id.toString())
 
-
             removeMessageWorker.setInputData(data.build())
             removeMessageWorker.setConstraints(constraints)
 
@@ -157,27 +161,6 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
             withContext(Dispatchers.Main){
                 _removeMessageWorkerId.value = builder.id
             }
-
-//            try {
-//                chatsPath.document(chatId)
-//                    .collection("messages")
-//                    .document(message.id.toString())
-//                    .delete()
-//                    .addOnSuccessListener {
-//                        chatsPath.document().collection("messages").document(message.id.toString()).get()
-//                            .addOnSuccessListener {
-//                                if (it.exists()){}
-//                                else{
-//                                    Log.i(TAG,"message is removed")
-//                                    _messageState.value = MessageState.DELETE
-//
-//                                }
-//                            }
-//                    }
-//                    .addOnFailureListener {  Log.i(TAG,it.message.toString())}
-//            }catch (ex: Exception){
-//                Log.i(TAG,ex.message.toString())
-//            }
         }
     }
 
@@ -243,6 +226,9 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
             }
         }
     }
+
+
+
 
 
 

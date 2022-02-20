@@ -2,6 +2,7 @@ package com.chatapp.info
 
 import android.text.format.DateFormat
 import android.view.View
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.databinding.BindingAdapter
 import java.util.*
@@ -13,8 +14,14 @@ fun dateToString(textView: TextView, date: Date){
 
 
 @BindingAdapter("isMessageSent")
-fun isMessageSent(v: View,isExist: Boolean){
-    if (isExist){
-        v.visibility = View.GONE
+fun isMessageSent(progress: ProgressBar,isSending: Boolean?){
+    if (isSending != null){
+        if (isSending){
+            progress.visibility = View.VISIBLE
+        }else{
+            progress.visibility = View.GONE
+        }
+    }else{
+        progress.visibility = View.GONE
     }
 }

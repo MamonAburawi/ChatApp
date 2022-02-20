@@ -2,8 +2,8 @@ package com.chatapp.info.screens.chat
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.opengl.Visibility
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,9 +15,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.navArgs
 import androidx.work.WorkManager
 import com.airbnb.epoxy.EpoxyController
-import com.airbnb.epoxy.EpoxyRecyclerView
 import com.chatapp.info.*
 import com.chatapp.info.data.Message
+import com.chatapp.info.data.MessageInfo
 import com.chatapp.info.data.User
 import com.chatapp.info.databinding.ChatBinding
 import com.google.firebase.auth.FirebaseAuth
@@ -35,8 +35,11 @@ class Chat: Fragment() {
 
     private var m: Message? = null
 
+    private var messagesInfo = ArrayList<MessageInfo>()
+
+    private var listMessageSending = ArrayList<Message>()
+
     private var controller: EpoxyController? = null
-    private lateinit var withModels: Unit
     private var oldMessages = ArrayList<Message>()
     private var newMessages = ArrayList<Message>()
     private var diff = ArrayList<Message>()
@@ -64,9 +67,7 @@ class Chat: Fragment() {
         binding.apply {
 
             binding.user = userInfo
-            withModels = recyclerViewChat.withModels{
-                return@withModels
-            }
+
 
 
             /** button send **/
@@ -88,11 +89,25 @@ class Chat: Fragment() {
 
 
 
+            /** live data progress sending **/
+            viewModel.isSending.observe(viewLifecycleOwner,{ isSending ->
+                if (isSending != null){
+                    if (isSending){
+                        progressMessage.visibility = View.VISIBLE
+                    }else{
+                        progressMessage.visibility = View.GONE
+                    }
+                }
+            })
+
+
             /** live data messages **/
             viewModel.messages.observe(viewLifecycleOwner,{ messages ->
                 if (messages != null){
                     oldMessages = messages as ArrayList<Message>
+
                     initRecyclerView(messages)
+
                 }else{
                     Toast.makeText(ctx,"no messages found!",Toast.LENGTH_SHORT).show()
                 }
@@ -101,36 +116,29 @@ class Chat: Fragment() {
 
 
 
-            /** send message worker info **/
+            /** live data send message worker info **/
             viewModel.sendMessageWorkerId.observe(viewLifecycleOwner, { workerId ->
                 if (workerId != null){
 
                     val worker = WorkManager.getInstance(requireActivity())
                     worker.getWorkInfoByIdLiveData(workerId).observe(viewLifecycleOwner, {
 
+                        val state = it.state.name
+
+                        if (state == "RUNNING"){
+                            Log.i("worker","send message is running..")
+
+
+//                            initRecyclerView(messagesInfo)
+
+
+                        }
+
+
                         if (it.state.isFinished){ // message is sent successfully
                             recyclerViewChat.smoothScrollToPosition(oldMessages.size + 2)
 
-//                            // TODO: fix this issue ..
-//                            recyclerViewChat.withModels {
-//
-//                                oldMessages.forEach {
-//
-//                                    m!!.text = "welocme bro how are you all"
-//                                    this.senderMessage {
-//                                        id(m!!.id)
-//                                        message(m)
-//
-//                                    }
-//
-//                                }
-//
-//
-//                            }
-//                            updateUI()
-//
-
-
+                           viewModel.sendingComplete()
 
                         }
 
@@ -139,7 +147,8 @@ class Chat: Fragment() {
             })
 
 
-            /** remove message worker info **/
+
+            /** live data remove message worker info **/
             viewModel.removeMessageWorkerId.observe(viewLifecycleOwner,{ workerId ->
                 if (workerId != null){
                     val worker = WorkManager.getInstance(requireActivity())
@@ -178,6 +187,8 @@ class Chat: Fragment() {
             controller = this
             messages.forEachIndexed { index, message ->
 
+//                messagesInfo.add(MessageInfo(index,messageInfo.message,false))
+
                 if (message.senderId == senderId){ // sender layout
 
                     controller!!.senderMessage {
@@ -187,6 +198,18 @@ class Chat: Fragment() {
                             pupUpMenu(v,message)
                         }
                     }
+
+
+//                    controller!!.senderMessageProgress {
+//                        id(messageInfo.message.id)
+//                        message(messageInfo.message)
+//                        clickListener{ v->
+//
+//                        }
+//                    }
+
+
+
 
                 }else{ // recipient layout
 
