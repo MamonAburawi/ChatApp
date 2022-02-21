@@ -8,8 +8,7 @@ import com.chatapp.info.data.DateConverter
 import com.chatapp.info.data.Message
 import com.chatapp.info.screens.chat.ChatViewModel
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.delay
-import java.util.*
+
 
 class SendMessageWork(context : Context, paramsWorker: WorkerParameters) : CoroutineWorker(context,paramsWorker) {
 
@@ -19,7 +18,6 @@ class SendMessageWork(context : Context, paramsWorker: WorkerParameters) : Corou
 
     override suspend fun doWork(): Result {
 
-//        val currentTime = Calendar.getInstance().time
         val date = inputData.getLong("date",0L)
         val longToDate = DateConverter.from(date)
         val chatId = inputData.getString("chat_id")
@@ -30,7 +28,7 @@ class SendMessageWork(context : Context, paramsWorker: WorkerParameters) : Corou
             longToDate!!,
             inputData.getString("sender_id")!!,
             inputData.getString("recipient_id")!!,
-            inputData.getString("image")!!,
+            inputData.getString("image_id")!!,
             inputData.getString("type")!!
         )
 

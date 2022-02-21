@@ -24,8 +24,8 @@ data class Message(
     @ColumnInfo(name = "time") val time: Date = Calendar.getInstance().time,
     @ColumnInfo(name = "sender_id") val senderId: String = "",
     @ColumnInfo(name = "recipient_id") val recipientId: String = "",
-    @ColumnInfo(name = "image") val image: String = "",
-    @ColumnInfo(name = "type") val type: String = MessageType.TEXT
+    @ColumnInfo(name = "image") val imageId: String? = null,
+    @ColumnInfo(name = "type") val type: String = ""
 )
 
 

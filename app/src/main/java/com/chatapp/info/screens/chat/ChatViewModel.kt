@@ -1,6 +1,7 @@
 package com.chatapp.info.screens.chat
 
 import android.app.Application
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.*
 import androidx.work.*
@@ -12,8 +13,10 @@ import com.chatapp.info.genUUID
 import com.chatapp.info.repository.server.ChatRepositoryOnline
 import com.chatapp.info.workmanager.RemoveMessageWork
 import com.chatapp.info.workmanager.SendMessageWork
+import com.chatapp.info.workmanager.UploadImageWork
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.*
 import java.util.*
 
@@ -33,7 +36,9 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
     private val removeMessageWorker by lazy {
         OneTimeWorkRequest.Builder(RemoveMessageWork::class.java)
     }
-
+    private val uploadImageWorker by lazy{
+        OneTimeWorkRequest.Builder(UploadImageWork::class.java)
+    }
     private val scopeIO = CoroutineScope(Dispatchers.IO + Job())
     private val scopeMain = CoroutineScope(Dispatchers.Main + Job())
 
@@ -44,9 +49,6 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
 
     private val _progress = MutableLiveData<Boolean>()
     val progress: LiveData<Boolean> = _progress
-
-    private val _messageState = MutableLiveData<String?>()
-    val messageState: LiveData<String?> = _messageState
 
     private val _isSending = MutableLiveData<Boolean?>()
     val isSending: LiveData<Boolean?> = _isSending
@@ -62,12 +64,18 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
     private val _auth = FirebaseAuth.getInstance()
 
 
+// TODO: add function to check if the connection is still or not and put it inside live data
+
     /** worker ids **/
     private val _sendMessageWorkerId = MutableLiveData<UUID>()
     val sendMessageWorkerId: LiveData<UUID> = _sendMessageWorkerId
 
     private val _removeMessageWorkerId = MutableLiveData<UUID>()
     val removeMessageWorkerId: LiveData<UUID> = _removeMessageWorkerId
+
+    private val _uploadImageWorkerId = MutableLiveData<UUID>()
+    val uploadImageWorkerId: LiveData<UUID> = _uploadImageWorkerId
+
 
     private var chatId = ""
 
@@ -83,22 +91,13 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
     }
 
 
-    fun resetMessageState(){
-        _messageState.value = null
-    }
-
-
-//    fun sending(){
-//        _isSending.value = true
-//    }
 
     fun sendingComplete(){
         _isSending.value = false
     }
 
 
-    fun addMessage(message: Message){
-        _isSending.value = true
+    fun addMessage(message: Message,image: Uri? = null){
 
         scopeIO.launch {
 
@@ -114,33 +113,46 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
             data.putLong("date", dateToLong!!)
             data.putString("sender_id",message.senderId)
             data.putString("recipient_id",message.recipientId)
-            data.putString("image",message.image)
+            data.putString("image_id",message.imageId)
             data.putString("type",message.type)
             data.putString("chat_id",chatId)
+            data.putString("image", image.toString())
 
-            sendMessageWorker.setInputData(data.build())
-            sendMessageWorker.setConstraints(constraints)
+            uploadImageWorker
+                .setInputData(data.build())
+                .setConstraints(constraints)
 
-            val builder = sendMessageWorker.build()
+            sendMessageWorker
+                .setInputData(data.build())
+                .setConstraints(constraints)
 
-            worker.beginWith(builder).enqueue()
+            val uploadImageBuilder = uploadImageWorker.build()
+            val sendMessageBuilder = sendMessageWorker.build()
 
-            withContext(Dispatchers.Main){
-                _sendMessageWorkerId.value = builder.id
+            if (image != null){ // image it will uploader then message it will be sent
+                worker.beginWith(uploadImageBuilder)
+                    .then(sendMessageBuilder)
+                    .enqueue()
+
+                withContext(Dispatchers.Main){
+                    _isSending.value = true
+                }
+            }else{
+                worker.beginWith(sendMessageBuilder).enqueue()
             }
 
-//            Log.i("worker","sender message worker id: ${builder.id}")
+            withContext(Dispatchers.Main){
+                _uploadImageWorkerId.value = uploadImageBuilder.id
+                _sendMessageWorkerId.value = sendMessageBuilder.id
+            }
+
 
         }
 
-
-
     }
-
 
     fun removeMessage(message: Message){
         scopeIO.launch {
-
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
@@ -149,8 +161,9 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
             data.putString("chat_id",chatId)
             data.putString("message_id",message.id.toString())
 
-            removeMessageWorker.setInputData(data.build())
-            removeMessageWorker.setConstraints(constraints)
+            removeMessageWorker
+                .setInputData(data.build())
+                .setConstraints(constraints)
 
             val builder = removeMessageWorker.build()
 
@@ -161,10 +174,6 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
             }
         }
     }
-
-
-
-
 
 
     private fun createNewChatId(chatId:(String) -> Unit) {

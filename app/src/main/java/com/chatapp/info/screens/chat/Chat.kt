@@ -28,13 +28,19 @@ import kotlin.collections.ArrayList
 import kotlin.random.Random
 
 
+
 class Chat: Fragment() {
+
+    companion object{
+        const val IMAGE = 4
+    }
+
 
     private lateinit var viewModel: ChatViewModel
     private lateinit var binding : ChatBinding
     private lateinit var ctx : Activity
     private lateinit var userInfo: User
-    private var selectedUriList: ArrayList<Uri>? = null
+    private var selectedUriList = ArrayList<Uri>()
 
     private var m: Message? = null
 
@@ -47,23 +53,21 @@ class Chat: Fragment() {
     @SuppressLint("NotifyDataSetChanged")
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
 
-
         binding = DataBindingUtil.inflate(inflater, R.layout.chat,container,false)
         ctx = requireActivity()
-        utilContext = requireActivity()
 
         userInfo = navArgs<ChatArgs>().value.user
         val factory = ChatViewModelFactory(ctx.application,userInfo)
 
         viewModel = ViewModelProvider(this,factory)[ChatViewModel::class.java]
 
-
-
         binding.apply {
 
             binding.user = userInfo
+            binding.lifecycleOwner = this@Chat
 
 
+            // TODO: set message for the user tell him you message will be sent once the connection is back with snake bar
 
             /** button send **/
             btnSend.setOnClickListener {
@@ -74,6 +78,21 @@ class Chat: Fragment() {
                     viewModel.addMessage(mess)
                     message.setText("")
                 }
+
+                if (selectedUriList.isNotEmpty()){
+
+                    selectedUriList.forEach { image ->
+                        val imageId = genUUID()
+                        val message = Message(Random.nextLong(),"",Calendar.getInstance().time,senderId,userInfo.id, imageId,MessageType.IMAGE)
+
+                        viewModel.addMessage(message,image)
+                    }
+                    selectedUriList.clear()
+                    recyclerViewImages.visibility = View.GONE
+
+                }
+
+
             }
 
 
@@ -84,7 +103,7 @@ class Chat: Fragment() {
 
 
             /** button select image **/
-            btnSelectImage.setOnClickListener { selectImages() }
+            btnAttach.setOnClickListener { selectImages() }
 
 
             /** live data progress sending **/
@@ -111,7 +130,6 @@ class Chat: Fragment() {
 
 
 
-
             /** live data send message worker info **/
             viewModel.sendMessageWorkerId.observe(viewLifecycleOwner, { workerId ->
                 if (workerId != null){
@@ -123,12 +141,13 @@ class Chat: Fragment() {
                         }
                         if (it.state.isFinished){ // message is sent successfully
                             recyclerViewChat.smoothScrollToPosition(oldMessages.size + 2)
-                           viewModel.sendingComplete()
+
                         }
                     })
                 }
             })
 
+            // TODO: add global work for all live data worker and put them inside one function
 
 
             /** live data remove message worker info **/
@@ -136,6 +155,7 @@ class Chat: Fragment() {
                 if (workerId != null){
                     val worker = WorkManager.getInstance(requireActivity())
                     worker.getWorkInfoByIdLiveData(workerId).observe(viewLifecycleOwner,{
+
                         if (it.state.isFinished){ // message is removed successfully
 
                         }
@@ -143,6 +163,18 @@ class Chat: Fragment() {
                 }
             })
 
+
+            /** live data upload image worker info **/
+            viewModel.uploadImageWorkerId.observe(viewLifecycleOwner,{ workerId ->
+                if (workerId != null){
+                    val worker = WorkManager.getInstance(requireContext())
+                    worker.getWorkInfoByIdLiveData(workerId).observe(viewLifecycleOwner,{
+                        if (it.state.isFinished){
+                            viewModel.sendingComplete()
+                        }
+                    })
+                }
+            })
 
 
 
@@ -152,7 +184,6 @@ class Chat: Fragment() {
         return binding.root
     }
 
-    
 
     private fun selectImages(){
         TedImagePicker.with(ctx)
@@ -170,13 +201,13 @@ class Chat: Fragment() {
         binding.recyclerViewImages.withModels {
             imagesList.forEach { uri->
                 image {
-                    id(uri.toString()+"sf")
+                    id (uri.toString())
                     selectImage(uri)
                     btnClear { v->
-                        selectedUriList!!.remove(uri)
+                        selectedUriList.remove(uri)
                         requestModelBuild()
                         Log.i("ImagePicker","image: $uri removed")
-                        if (selectedUriList!!.size <= 0){
+                        if (selectedUriList.size <= 0){
                            binding.recyclerViewImages.visibility = View.GONE
                         }
                     }
@@ -186,19 +217,29 @@ class Chat: Fragment() {
     }
 
 
+    // TODO: get the images from chat and put them inside epoxy recycler view
+
+    // TODO: add remove image function for sender side
+
+
     private fun initChatItems(messages: List<Message>){
-        /** recycler view messages **/
         binding.recyclerViewChat.withModels {
             controller = this
             messages.forEachIndexed { index, message ->
                 if (message.senderId == senderId){ // sender layout
-                    controller!!.senderMessage {
-                        id(message.id)
-                        message(message)
-                        clickListener { v->
-                            pupUpMenu(v,message)
+
+                    if(message.type == MessageType.TEXT){
+                        controller!!.senderMessage {
+                            id(message.id)
+                            message(message)
+                            clickListener { v->
+                                pupUpMenu(v,message)
+                            }
                         }
+                    }else{ // Image
+
                     }
+
                 }else{ // recipient layout
                     controller!!.recipientMessage {
                         id(message.id)
@@ -235,6 +276,7 @@ class Chat: Fragment() {
         }
         popupMenu.show()
     }
+
 
 
 
