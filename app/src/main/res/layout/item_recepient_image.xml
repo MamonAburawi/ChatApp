@@ -4,7 +4,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
-
         <variable
             name="message"
             type="com.chatapp.info.data.Message" />
@@ -13,7 +12,6 @@
         <variable
             name="clickListener"
             type="android.view.View.OnClickListener" />
-
     </data>
 
     <FrameLayout
@@ -35,6 +33,7 @@
                 android:layout_height="wrap_content"
                 android:padding="2dp">
 
+
                 <ImageView
                     android:layout_width="256dp"
                     android:layout_height="wrap_content"
@@ -42,6 +41,7 @@
                     android:scaleType="fitCenter"
                     android:padding="4dp"
                     tools:src="@drawable/ic_image" />
+
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -54,6 +54,12 @@
                     android:textColor="@android:color/white"
                     android:layout_gravity="start|bottom"
                     tools:text="3/15/2018 3:00 PM" />
+
+                <!--            <ProgressBar-->
+                <!--                android:id="@+id/progress_ImageSent"-->
+                <!--                android:layout_width="wrap_content"-->
+                <!--                android:layout_height="wrap_content"-->
+                <!--                android:layout_gravity="center"/>-->
 
             </FrameLayout>
 

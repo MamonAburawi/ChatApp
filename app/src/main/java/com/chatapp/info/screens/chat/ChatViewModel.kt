@@ -1,10 +1,13 @@
 package com.chatapp.info.screens.chat
 
 import android.app.Application
+import android.content.Context
 import android.net.Uri
 import android.util.Log
+import android.widget.ImageView
 import androidx.lifecycle.*
 import androidx.work.*
+import com.bumptech.glide.Glide
 import com.chatapp.info.data.Chat
 import com.chatapp.info.data.DateConverter
 import com.chatapp.info.data.Message
@@ -47,14 +50,15 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
     private val _messages = MutableLiveData<List<Message>>()
     val messages: LiveData<List<Message>> = _messages
 
-    private val _progress = MutableLiveData<Boolean>()
-    val progress: LiveData<Boolean> = _progress
+    private val _image = MutableLiveData<Uri>()
+    val image: LiveData<Uri> = _image
 
     private val _isSending = MutableLiveData<Boolean?>()
     val isSending: LiveData<Boolean?> = _isSending
 
     private val _error = MutableLiveData<String>()
     val error: LiveData<String> = _error
+
 
     // firebase fire store
     private val _root = FirebaseFirestore.getInstance()
@@ -77,10 +81,9 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
     val uploadImageWorkerId: LiveData<UUID> = _uploadImageWorkerId
 
 
-    private var chatId = ""
+    var chatId = ""
 
     init {
-        _progress.value = false
         _isSending.value = null
 
         createNewChatId { id->
@@ -94,6 +97,18 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
 
     fun sendingComplete(){
         _isSending.value = false
+    }
+
+
+    // TODO: set function for download images from the server
+
+    fun downloadImage(imageId: String,onComplete:(Uri)-> Unit){
+
+            FirebaseStorage.getInstance()
+                .reference.child("images/$chatId/$imageId").downloadUrl.addOnSuccessListener {
+                    onComplete(it)
+                }
+
     }
 
 

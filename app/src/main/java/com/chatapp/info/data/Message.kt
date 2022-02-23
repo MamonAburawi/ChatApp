@@ -25,7 +25,9 @@ data class Message(
     @ColumnInfo(name = "sender_id") val senderId: String = "",
     @ColumnInfo(name = "recipient_id") val recipientId: String = "",
     @ColumnInfo(name = "image") val imageId: String? = null,
-    @ColumnInfo(name = "type") val type: String = ""
+    @ColumnInfo(name = "type") val type: String = "",
+    @ColumnInfo(name = "chatId") val chatId: String? = null
+
 )
 
 

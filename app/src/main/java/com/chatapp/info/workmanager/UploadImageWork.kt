@@ -34,6 +34,7 @@ class UploadImageWork(val context : Context, paramsWorker: WorkerParameters) : C
         selectedImageBmp.compress(Bitmap.CompressFormat.JPEG, 25, outputStream)
         val selectedImageBytes = outputStream.toByteArray()
 
+
         imagePath.putBytes(selectedImageBytes)
             .addOnSuccessListener {
             Log.i(TAG,"image is uploaded")

@@ -29,20 +29,22 @@ class SendMessageWork(context : Context, paramsWorker: WorkerParameters) : Corou
             inputData.getString("sender_id")!!,
             inputData.getString("recipient_id")!!,
             inputData.getString("image_id")!!,
-            inputData.getString("type")!!
+            inputData.getString("type")!!,
+            chatId
         )
 
         try {
             chatsPath.document(chatId!!).collection("messages").document(message.id.toString())
                 .set(message)
                 .addOnCompleteListener {
-
                     Result.success()
-
-                }.addOnFailureListener {}
-
+                }
+                .addOnFailureListener {
+                    Result.failure()
+                }
         }catch(ex:Exception){
             Log.i(ChatViewModel.TAG,ex.message.toString())
+            Result.failure()
         }
 
 

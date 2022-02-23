@@ -126,7 +126,6 @@ class LoginViewModel : ViewModel() {
                         Log.i(TAG,"user is exist!")
                     }else{
                         isExist(false) // user is not exist
-                        Log.i(TAG,"user is not exist!")
                     }
                 }
             }

@@ -1,7 +1,6 @@
 package com.chatapp.info.screens.chat
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -15,10 +14,10 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.navArgs
 import androidx.work.WorkManager
-import com.airbnb.epoxy.EpoxyController
+import com.airbnb.epoxy.EpoxyRecyclerView
 import com.chatapp.info.*
+
 import com.chatapp.info.data.Message
-import com.chatapp.info.data.User
 import com.chatapp.info.databinding.ChatBinding
 import com.google.firebase.auth.FirebaseAuth
 import gun0912.tedimagepicker.builder.TedImagePicker
@@ -27,47 +26,48 @@ import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.random.Random
 
-
-
 class Chat: Fragment() {
 
-    companion object{
-        const val IMAGE = 4
+    private val ctx by lazy { requireContext() }
+    private val userInfo by lazy {
+        navArgs<ChatArgs>().value.user
     }
-
-
-    private lateinit var viewModel: ChatViewModel
+    private val viewModel by lazy {
+        val factory = ChatViewModelFactory(requireActivity().application,userInfo)
+        ViewModelProvider(this,factory)[ChatViewModel::class.java]
+    }
+    private val senderId by lazy {
+        FirebaseAuth.getInstance().currentUser!!.uid
+    }
+    private val worker by lazy {
+        WorkManager.getInstance(requireContext())
+    }
     private lateinit var binding : ChatBinding
-    private lateinit var ctx : Activity
-    private lateinit var userInfo: User
     private var selectedUriList = ArrayList<Uri>()
-
     private var m: Message? = null
-
-    private var controller: EpoxyController? = null
-    private var oldMessages = ArrayList<Message>()
-
-    private val senderId = FirebaseAuth.getInstance().currentUser!!.uid
+    private var currentMessages = ArrayList<Message>()
 
 
     @SuppressLint("NotifyDataSetChanged")
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-
         binding = DataBindingUtil.inflate(inflater, R.layout.chat,container,false)
-        ctx = requireActivity()
-
-        userInfo = navArgs<ChatArgs>().value.user
-        val factory = ChatViewModelFactory(ctx.application,userInfo)
-
-        viewModel = ViewModelProvider(this,factory)[ChatViewModel::class.java]
 
         binding.apply {
 
+            utilContext = context
             binding.user = userInfo
             binding.lifecycleOwner = this@Chat
 
+            liveData()
+            workersInfo()
+            initChatItems(currentMessages)
 
             // TODO: set message for the user tell him you message will be sent once the connection is back with snake bar
+
+            btnSend.setOnLongClickListener {
+                recyclerViewChat.requestModelBuild()
+                true
+            }
 
             /** button send **/
             btnSend.setOnClickListener {
@@ -80,16 +80,13 @@ class Chat: Fragment() {
                 }
 
                 if (selectedUriList.isNotEmpty()){
-
                     selectedUriList.forEach { image ->
                         val imageId = genUUID()
                         val message = Message(Random.nextLong(),"",Calendar.getInstance().time,senderId,userInfo.id, imageId,MessageType.IMAGE)
-
                         viewModel.addMessage(message,image)
                     }
                     selectedUriList.clear()
                     recyclerViewImages.visibility = View.GONE
-
                 }
 
 
@@ -104,77 +101,6 @@ class Chat: Fragment() {
 
             /** button select image **/
             btnAttach.setOnClickListener { selectImages() }
-
-
-            /** live data progress sending **/
-            viewModel.isSending.observe(viewLifecycleOwner,{ isSending ->
-                if (isSending != null){
-                    if (isSending){
-                        progressMessage.visibility = View.VISIBLE
-                    }else{
-                        progressMessage.visibility = View.GONE
-                    }
-                }
-            })
-
-
-            /** live data messages **/
-            viewModel.messages.observe(viewLifecycleOwner,{ messages ->
-                if (messages != null){
-                    oldMessages = messages as ArrayList<Message>
-                    initChatItems(messages)
-                }else{
-                    Toast.makeText(ctx,"no messages found!",Toast.LENGTH_SHORT).show()
-                }
-            })
-
-
-
-            /** live data send message worker info **/
-            viewModel.sendMessageWorkerId.observe(viewLifecycleOwner, { workerId ->
-                if (workerId != null){
-                    val worker = WorkManager.getInstance(requireActivity())
-                    worker.getWorkInfoByIdLiveData(workerId).observe(viewLifecycleOwner, {
-                        val state = it.state.name
-                        if (state == "RUNNING"){
-                            Log.i("worker","send message is running..")
-                        }
-                        if (it.state.isFinished){ // message is sent successfully
-                            recyclerViewChat.smoothScrollToPosition(oldMessages.size + 2)
-
-                        }
-                    })
-                }
-            })
-
-            // TODO: add global work for all live data worker and put them inside one function
-
-
-            /** live data remove message worker info **/
-            viewModel.removeMessageWorkerId.observe(viewLifecycleOwner,{ workerId ->
-                if (workerId != null){
-                    val worker = WorkManager.getInstance(requireActivity())
-                    worker.getWorkInfoByIdLiveData(workerId).observe(viewLifecycleOwner,{
-
-                        if (it.state.isFinished){ // message is removed successfully
-
-                        }
-                    })
-                }
-            })
-
-
-            /** live data upload image worker info **/
-            viewModel.uploadImageWorkerId.observe(viewLifecycleOwner,{ workerId ->
-                if (workerId != null){
-                    val worker = WorkManager.getInstance(requireContext())
-                    worker.getWorkInfoByIdLiveData(workerId).observe(viewLifecycleOwner,{
-                        if (it.state.isFinished){
-                            viewModel.sendingComplete()
-                        }
-                    })
-                }
-            })
 
 
 
@@ -208,7 +134,7 @@ class Chat: Fragment() {
                         requestModelBuild()
                         Log.i("ImagePicker","image: $uri removed")
                         if (selectedUriList.size <= 0){
-                           binding.recyclerViewImages.visibility = View.GONE
+                            binding.recyclerViewImages.visibility = View.GONE
                         }
                     }
                 }
@@ -217,49 +143,55 @@ class Chat: Fragment() {
     }
 
 
-    // TODO: get the images from chat and put them inside epoxy recycler view
-
-    // TODO: add remove image function for sender side
 
 
-    private fun initChatItems(messages: List<Message>){
+    // TODO: add remove image function for sender image item
+
+
+    private fun initChatItems(messages: ArrayList<Message>){
         binding.recyclerViewChat.withModels {
-            controller = this
             messages.forEachIndexed { index, message ->
                 if (message.senderId == senderId){ // sender layout
-
                     if(message.type == MessageType.TEXT){
-                        controller!!.senderMessage {
+                        senderMessage {
                             id(message.id)
                             message(message)
                             clickListener { v->
                                 pupUpMenu(v,message)
                             }
                         }
-                    }else{ // Image
+                    }else{
+                        
+                        senderImage {
+                            id(message.id)
+                            message(message)
+                            clickListener { v->
+
+                            }
+                        }
+
 
                     }
 
                 }else{ // recipient layout
-                    controller!!.recipientMessage {
+                    recipientMessage {
                         id(message.id)
                         message(message)
                         clickListener { v ->
 
                         }
                     }
+
                 }
             }
+
         }
     }
-
-
 
 
     private fun navigateToBackScreen(){
         requireActivity().onBackPressed()
     }
-
 
 
     private fun pupUpMenu(v: View, message: Message){
@@ -277,6 +209,88 @@ class Chat: Fragment() {
         popupMenu.show()
     }
 
+
+    private fun liveData() {
+
+        /** live data progress sending **/
+        viewModel.isSending.observe(viewLifecycleOwner,{ isSending ->
+            if (isSending != null){
+                if (isSending){
+                    binding.progressMessage.visibility = View.VISIBLE
+                }else{
+                    binding.progressMessage.visibility = View.GONE
+                }
+            }
+        })
+
+        /** live data messages **/
+        viewModel.messages.observe(viewLifecycleOwner,{ allMessages ->
+            if (allMessages != null){
+                val newMessages = allMessages.minus(currentMessages.toSet()) // here we
+                currentMessages.addAll(newMessages)
+                updateRV(binding.recyclerViewChat)
+
+                Log.i("chatsdata","messages: ${currentMessages.size}")
+
+            }else{
+                Toast.makeText(ctx,"no messages found!",Toast.LENGTH_SHORT).show()
+            }
+        })
+
+
+    }
+
+
+    private fun updateRV(rv: EpoxyRecyclerView){
+        rv.requestModelBuild()
+    }
+
+
+    private fun workersInfo(){
+        /** live data send message worker info **/
+        viewModel.sendMessageWorkerId.observe(viewLifecycleOwner, { workerId ->
+            if (workerId != null){
+                worker.getWorkInfoByIdLiveData(workerId).observe(viewLifecycleOwner, {
+                    val state = it.state.name
+                    if (state == "RUNNING"){
+                        Log.i("worker","send message is running..")
+                    }
+                    if (it.state.isFinished){ // message is sent successfully
+                        binding.recyclerViewChat.smoothScrollToPosition(currentMessages.size)
+                    }
+                })
+            }
+        })
+
+
+
+        /** live data remove message worker info **/
+        viewModel.removeMessageWorkerId.observe(viewLifecycleOwner,{ workerId ->
+            if (workerId != null){
+                worker.getWorkInfoByIdLiveData(workerId).observe(viewLifecycleOwner,{
+
+                    if (it.state.isFinished){ // message is removed successfully
+
+                    }
+                })
+            }
+        })
+
+
+        /** live data upload image worker info **/
+        viewModel.uploadImageWorkerId.observe(viewLifecycleOwner,{ workerId ->
+            if (workerId != null){
+                worker.getWorkInfoByIdLiveData(workerId).observe(viewLifecycleOwner,{
+                    if (it.state.isFinished){
+                        viewModel.sendingComplete()
+                    }
+                })
+            }
+        })
+
+
+
+    }
 
 
 

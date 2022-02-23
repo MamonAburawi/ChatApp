@@ -17,4 +17,10 @@ class ChatRepositoryOnline() {
     suspend fun getChats(path: CollectionReference) = database.readAll(path)
 
 
+
+
+    // todo set function of upload image here
+
+    // todo set image of download image here
+
 }
