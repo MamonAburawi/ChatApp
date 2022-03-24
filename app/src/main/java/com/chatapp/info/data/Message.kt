@@ -1,33 +1,37 @@
 package com.chatapp.info.data
 
-import androidx.room.*
-import com.chatapp.info.MessageType
+import android.os.Parcelable
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import com.chatapp.info.utils.MessageType
+import kotlinx.parcelize.Parcelize
 import java.util.*
+import kotlin.collections.ArrayList
 
 
-//@Entity(
-//    tableName = "messages",
-//    foreignKeys = [ForeignKey(
-//        entity = User::class,
-//        parentColumns = ["user_id"],
-//        childColumns = ["message_id"], // user
-//        onDelete = ForeignKey.CASCADE
-//    )]
-//)
-
+@Parcelize
 @Entity(tableName = "messages")
-data class Message(
-    @PrimaryKey(autoGenerate = true)
-    @ColumnInfo(name = "message_id")
-    val id: Long = 0L,
-    @ColumnInfo(name = "text", defaultValue = "") var text: String = "",
-    @ColumnInfo(name = "time") val time: Date = Calendar.getInstance().time,
-    @ColumnInfo(name = "sender_id") val senderId: String = "",
-    @ColumnInfo(name = "recipient_id") val recipientId: String = "",
-    @ColumnInfo(name = "image") val imageId: String? = null,
-    @ColumnInfo(name = "type") val type: String = "",
-    @ColumnInfo(name = "chatId") val chatId: String? = null
-
-)
-
-
+data class Message (
+    @PrimaryKey
+    var messageId: String = "",
+    var text: String = "",
+    var date: Date = Date(),
+    val senderId: String = "",
+    val recipientId: String = "",
+    var images: List<String> = ArrayList(),
+    val chatId: String = "",
+    val type: String = ""
+):Parcelable{
+    fun toHashMap(): HashMap<String, Any> {
+        return hashMapOf(
+            "messageId" to messageId,
+            "text" to text,
+            "date" to date,
+            "senderId" to senderId,
+            "recipientId" to recipientId,
+            "images" to images,
+            "chatId" to chatId,
+            "type" to type
+        )
+    }
+}

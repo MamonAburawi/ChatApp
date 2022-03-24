@@ -1,21 +1,34 @@
 package com.chatapp.info.screens.users
 
 import android.app.Application
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
+import com.chatapp.info.ChatApplication
 import com.chatapp.info.data.User
-import com.chatapp.info.repository.server.UserRepositoryOnline
+import com.chatapp.info.utils.ChatAppSessionManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.*
 import java.util.*
+import kotlin.collections.ArrayList
 
 class UsersViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val userRepositoryOnline: UserRepositoryOnline by lazy {
-        UserRepositoryOnline()
-    }
+
+    private val sessionManager by lazy { ChatAppSessionManager(application) }
+    private val chatApplication by lazy { ChatApplication(application) }
+
+    private val userRepository by lazy { chatApplication.userRepository }
+
+    private val userId = sessionManager.getUserIdFromSession()
+
+    private val _currentUser = MutableLiveData<User?>()
+    val currentUser: LiveData<User?> = _currentUser
+
 
     private val scopeIO = CoroutineScope(Dispatchers.IO + Job())
     private val scopeMain = CoroutineScope(Dispatchers.Main + Job())
@@ -38,39 +51,52 @@ class UsersViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         _signOut.value = false
-        getUserInfo {
-            user = it
-        }
-
+        getUser()
+        getAllUser()
     }
 
 
 
 
-    fun filter(charSequence: String?,onComplete:(List<User>)-> Unit){
-        scopeIO.launch {
-            userRepositoryOnline.getUsers(_usersPath).get().addOnSuccessListener { it ->
-                if(it != null){
-                        val users = it.toObjects(User::class.java)
-                        onComplete(users.filter { it.name.lowercase(Locale.getDefault()).contains(charSequence!!.trim())})
-                    }
+
+     fun getAllUser(){
+        viewModelScope.launch {
+            val users = userRepository.getAllUsers()
+            withContext(Dispatchers.Main){
+                users as ArrayList<User>
+                users.remove(_currentUser.value)
+                _users.value = users
+            }
+        }
+    }
+
+    
+    fun hardRefreshData(){
+        viewModelScope.launch {
+            userRepository.hardRefreshData()
+        }
+    }
+
+    fun getUser() {
+        viewModelScope.launch {
+            val user = userRepository.getUser(userId!!)
+            withContext(Dispatchers.Main){
+                _currentUser.value = user
             }
         }
     }
 
 
-    private fun getUserInfo(onComplete: (User) -> Unit){
-        scopeIO.launch {
-            userRepositoryOnline.getUser(_usersPath.document(_auth.currentUser!!.uid)).get().addOnSuccessListener {
-                if(it != null){
-                    val user = it.toObject(User::class.java)
-                    if (user != null) {
-                        onComplete(user)
-                    }
-                }
-            }
+    fun filterBySearch(query: String) {
+        if (query.isEmpty()){
+            getAllUser()
+        }else{
+            val users = _users.value
+            _users.value = users?.filter { it.name.lowercase().contains(query.lowercase()) }
         }
+
     }
+
 
 
     fun signOut(){
@@ -82,7 +108,6 @@ class UsersViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun currentUser() = user
 
     override fun onCleared() {
         super.onCleared()
@@ -90,4 +115,5 @@ class UsersViewModel(application: Application) : AndroidViewModel(application) {
         scopeIO.cancel()
         scopeMain.cancel()
     }
+
 }

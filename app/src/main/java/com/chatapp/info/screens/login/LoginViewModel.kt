@@ -1,39 +1,59 @@
 package com.chatapp.info.screens.login
 
+
+import android.app.Application
 import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.chatapp.info.ChatApplication
+import com.chatapp.info.R
+import com.chatapp.info.remote.UserRemoteDataSource
+import com.chatapp.info.utils.ChatAppSessionManager
+import com.chatapp.info.utils.Result
+import com.chatapp.info.utils.StoreDataStatus
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.chatapp.info.data.User
-import com.chatapp.info.repository.server.UserRepositoryOnline
 import kotlinx.coroutines.*
-import java.lang.Exception
 
-class LoginViewModel : ViewModel() {
+class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
-    companion object{
+    private val app = application
+    //    val userPref = SharePref(app.applicationContext, SharePref.FILE_USER)
+    private val appSessionManager = ChatAppSessionManager(application.applicationContext)
+
+    companion object {
         const val TAG = "Login"
     }
 
-    private val userRepositoryOnline = UserRepositoryOnline()
+    private val shopApp = ChatApplication(application.applicationContext)
+    private val userRepository by lazy{ shopApp.userRepository}
+
+    private val _userRemoteDataSource by lazy { UserRemoteDataSource() }
+
+//    private val _userLocalDataSource by lazy {
+//        UserLocalDataSource(authRepository.in)
+//    }
+
+
+    //    private val userRepositoryOnline = UserRepositoryOnline()
     private val scopeIO = CoroutineScope(Dispatchers.IO + Job())
 
     private var e: String = ""
 
     /** live data **/
-    private val _inProgress = MutableLiveData<Boolean>()
-    val inProgress: LiveData<Boolean> = _inProgress
+    private val _inProgress = MutableLiveData<StoreDataStatus?>()
+    val inProgress: LiveData<StoreDataStatus?> = _inProgress
 
 
     /** live data **/
-    private val _error = MutableLiveData<String?>()
-    val error: LiveData<String?> = _error
+    private val _errorMessage = MutableLiveData<String?>()
+    val errorMessage: LiveData<String?> = _errorMessage
 
     /** live data **/
-    private val _isLogin = MutableLiveData<Boolean>()
-    val isLogin: LiveData<Boolean> = _isLogin
+    private val _isLogged = MutableLiveData<Boolean?>()
+    val isLogged: LiveData<Boolean?> = _isLogged
 
     // firebase fire store
     private val _root = FirebaseFirestore.getInstance()
@@ -44,94 +64,100 @@ class LoginViewModel : ViewModel() {
 
 
 
-    fun login(email: String , password: String){
-        _inProgress.value = true
-        _error.value = null
-        scopeIO.launch {
-            try {
-                isUserExist(email){ isUserExist->
-                    if (isUserExist){ // user is exist
-                        scopeIO.launch {
-                            _auth.signInWithEmailAndPassword(email,password).addOnCompleteListener { task->
-                                if(task.isComplete){
-                                    val id = _auth.currentUser?.uid
-                                    if(id != null){
-                                        scopeIO.launch {
-                                            if (_auth.currentUser?.isEmailVerified!!){
-                                                userRepositoryOnline.getUser(_usersPath.document(id)).get().addOnSuccessListener {
-                                                    val user = it.toObject(User::class.java)
-                                                    if (user?.password == password){
-                                                        _inProgress.value = false
-                                                        _isLogin.value = true
-                                                        Log.i(TAG,"login is successfully!")
-                                                    }
-                                                }
-                                            }else{
-                                                withContext(Dispatchers.Main){
-                                                    _inProgress.value = false
-                                                    _error.value = "email is not verify!"
-                                                    Log.i(TAG, "email is not verify!")
-                                                }
-                                            }
-                                        }
-                                    }else{
-                                        val error = task.exception!!.message.toString()
-                                        _inProgress.value = false
-                                        _error.value = "password is incorrect!"
-                                        Log.i(TAG,error)
-                                    }
+    fun initLogin(){
+        _isLogged.value = null
+        _inProgress.value = null
+        _errorMessage.value = null
+    }
 
-                                }else{
-                                    val error = task.exception!!.message.toString()
-                                    _error.value = error
-                                    _inProgress.value = false
-                                    Log.i("server",error)
-                                }
-                            }
-
-                        }
-
-                    }else{ // user is not exist!
-                        _inProgress.value = false
-                        _error.value = "user is not exist!"
-                        Log.e(TAG,"user is not exist!")
-                    }
-
-                }
-
-            }catch (ex: Exception){
-                val error = ex.message.toString()
-                _inProgress.value = false
-                _error.value = error
-                Log.e(TAG,error)
-            }
-
-        }
+    fun setLoginError(error: String){
+        _errorMessage.value = error
+        _inProgress.value = StoreDataStatus.ERROR
     }
 
 
-
-    private fun isUserExist(email: String,isExist:(Boolean) -> Unit){
-        try {
-            scopeIO.launch {
-                userRepositoryOnline.getUsers(_usersPath).get().addOnSuccessListener { documents ->
-                    val users = documents.toObjects(User::class.java)
-                    users.forEach { user ->
-                        if (user.email == email){
-                            e = email
-                        }
+    fun login(email: String, password: String, isRemOn: Boolean) {
+        scopeIO.launch {
+            withContext(Dispatchers.Main){
+                _inProgress.value = StoreDataStatus.LOADING
+            }
+            _userRemoteDataSource.checkUserIsExist(email,
+                isExist = { isExist ->
+                    if (!isExist) { // user is not exist
+                        Log.i(TAG, "user is not exist")
+                        setLoginError(app.resources.getString(R.string.user_is_not_exist))
+                    } else {// user is exist
+                        Log.i(TAG, "user is exist")
+                        signWithEmailAndPassword(email, password,isRemOn)
                     }
-                    if (e == email){
-                        isExist(true) // user is exist
-                        Log.i(TAG,"user is exist!")
-                    }else{
-                        isExist(false) // user is not exist
+                },
+                onError = { error -> // error network
+                    Log.i(TAG, error)
+                    setLoginError(error)
+                })
+        }
+    }
+
+// TODO: enhance the function
+
+    private fun signWithEmailAndPassword(email: String, password: String,isRemOn: Boolean){
+        viewModelScope.launch {
+            _auth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener { task ->
+                    if (task.isComplete) {
+                        val userId = _auth.currentUser?.uid
+                        Log.i("Login","user is: $userId")
+                        if (userId != null) {
+                            scopeIO.launch {
+                                if (_auth.currentUser?.isEmailVerified!!) {
+                                    _userRemoteDataSource.checkPassByUserId(userId, password){ isTypicalPass ->
+                                        if (isTypicalPass){
+                                            viewModelScope.launch {
+                                                val user = async { _userRemoteDataSource.getUserById(userId) }.await()
+                                                if (user != null){
+                                                    viewModelScope.launch {
+                                                        withContext(Dispatchers.Main){
+                                                            userRepository.login(user,isRemOn)
+                                                            _inProgress.value = StoreDataStatus.DONE
+                                                            _isLogged.value = true
+                                                        }
+                                                    }
+                                                }else{ // user is not found
+
+                                                }
+                                            }
+
+                                        }else{
+                                            scopeIO.launch {
+                                                withContext(Dispatchers.Main){
+                                                    Log.i("Login","password is not correct")
+                                                    setLoginError("password is not correct")
+                                                }
+                                            }
+
+                                        }
+
+                                    }
+                                } else {
+                                    withContext(Dispatchers.Main) {
+                                        setLoginError("email is not verify!")
+                                        Log.i(TAG, "email is not verify!")
+                                    }
+                                }
+                            }
+                        } else {
+                            val error = task.exception!!.message.toString()
+                            setLoginError("password is not correct!")
+                            Log.i(TAG, error)
+                        }
+
+                    } else {
+                        val error = task.exception!!.message.toString()
+                        _inProgress.value = StoreDataStatus.ERROR
+                        Log.i(TAG, error)
                     }
                 }
-            }
-        }catch (ex:Exception){
-            Log.i(TAG,ex.message.toString())
-            _inProgress.value = false
+
         }
     }
 

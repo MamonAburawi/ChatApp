@@ -1,15 +1,23 @@
 <resources>
-    <string name="app_name">Chat App</string>
-    <string name="message">Message</string>
-    <string name="registration">Registration</string>
-    <string name="name">Name</string>
-    <string name="email">Email</string>
-    <string name="phone">Phone (optionally)</string>
-    <string name="password">Password</string>
-    <string name="register">Register</string>
-    <string name="i_have_an_account">I have an accout</string>
-    <string name="reset_password">Reset Password</string>
-    <string name="create_new_account">Create New Account</string>
-    <string name="please_verify_your_email_address_then_you_can_login">Please verify your email address then you can login</string>
-    <string name="login">Login</string>
+    <string name="app_name" translatable="false">Chat App</string>
+    <string name="message" translatable="false">Message</string>
+    <string name="registration" translatable="false">Registration</string>
+    <string name="name" translatable="false">Name</string>
+    <string name="email" translatable="false">Email</string>
+    <string name="phone" translatable="false">Phone (optionally)</string>
+    <string name="password" translatable="false">Password</string>
+    <string name="register" translatable="false">Register</string>
+    <string name="i_have_an_account" translatable="false">I have an accout</string>
+    <string name="reset_password" translatable="false">Reset Password</string>
+    <string name="create_new_account" translatable="false">Create New Account</string>
+    <string name="please_verify_your_email_address_then_you_can_login" translatable="false">Please verify your email address then you can login</string>
+    <string name="login" translatable="false">Login</string>
+    <string name="chats" translatable="false">Chats</string>
+    <string name="users" translatable="false">Users</string>
+    <string name="user_is_not_exist" translatable="false">user is not exist!</string>
+    <string name="login_welcome_text" translatable="false">Welcome</string>
+    <string name="login_signup_message" translatable="false">New User? Sign Up</string>
+    <string name="user_exist" translatable="false">Account already used</string>
+    <string name="you_have_account_text" translatable="false">Already have an account? Log In</string>
+    <string name="signup_switch_tnc_label" translatable="false">I accept the policy and terms</string>
 </resources>

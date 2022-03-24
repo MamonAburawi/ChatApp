@@ -6,21 +6,35 @@
         <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/ImagePicker/src/main/res/drawable/bg_selected_media_clear.xml" value="0.2703125" />
         <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/ImagePicker/src/main/res/layout/item_selected_media.xml" value="0.22010869565217392" />
         <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/drawable/bg_search.xml" value="0.2703125" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/drawable/bg_time.xml" value="0.2703125" />
         <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/drawable/ic_add.xml" value="0.2703125" />
-        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/activity_main.xml" value="0.16893115942028986" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/drawable/ic_chat.xml" value="0.2703125" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/drawable/ic_send.xml" value="0.14635416666666667" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/drawable/login_bg_img.xml" value="0.2703125" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/drawable/progress_animator.xml" value="0.2703125" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/drawable/ripple_oval.xml" value="0.2703125" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/activity_launch.xml" value="0.2" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/activity_main.xml" value="0.2" />
         <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/activity_registration.xml" value="0.16893115942028986" />
-        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/chat.xml" value="0.264" />
-        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/item_image.xml" value="0.264" />
-        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/item_recepient_image.xml" value="0.2" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/chat.xml" value="0.2" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/circular_loader_layout.xml" value="0.25416666666666665" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/item_chat.xml" value="0.25416666666666665" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/item_image.xml" value="0.2" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/item_recepient_image.xml" value="0.264" />
         <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/item_recipient_message.xml" value="0.1793478260869565" />
         <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/item_sender_image.xml" value="0.264" />
         <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/item_sender_message.xml" value="0.4" />
         <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/item_sender_message_progress.xml" value="0.536" />
         <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/item_user.xml" value="0.22010869565217392" />
         <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/item_user_.xml" value="0.264" />
-        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/login.xml" value="0.2" />
-        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/registration.xml" value="0.2" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/login.xml" value="0.264" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/registration.xml" value="0.264" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/search_bar.xml" value="0.264" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/search_top_app_bar_layout.xml" value="0.25416666666666665" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/user_chats.xml" value="0.264" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/user_chats_top_app_bar_layout.xml" value="0.264" />
         <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/layout/users.xml" value="0.264" />
+        <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/menu/bottom_navigation_menu.xml" value="0.25416666666666665" />
         <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/menu/main_menu.xml" value="0.25416666666666665" />
         <entry key="..\:/Users/Mamon Aburawi/Desktop/ChatApp/app/src/main/res/menu/message_menu.xml" value="0.25416666666666665" />
       </map>

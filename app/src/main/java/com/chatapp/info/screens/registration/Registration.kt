@@ -12,9 +12,7 @@ import androidx.navigation.fragment.findNavController
 import com.chatapp.info.R
 import com.chatapp.info.data.User
 import com.chatapp.info.databinding.RegistrationBinding
-import com.chatapp.info.genUUID
-import java.util.*
-
+import com.chatapp.info.utils.StoreDataStatus
 
 class Registration : Fragment() {
 
@@ -22,10 +20,10 @@ class Registration : Fragment() {
     private lateinit var viewModel: RegistrationViewModel
     private lateinit var binding : RegistrationBinding
 
-    private var _email = ""
-    private var _password = ""
-    private var _name = ""
-    private var _phone = ""
+    private var email = ""
+    private var password = ""
+    private var name = ""
+    private var phone = ""
 
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -38,101 +36,134 @@ class Registration : Fragment() {
 
         binding.apply {
 
-
-            /** live data **/
-            viewModel.inProgress.observe(viewLifecycleOwner,{ inProgress->
-                if(inProgress){
-                    progress.visibility = View.VISIBLE
-                }else{
-                    progress.visibility = View.GONE
-                }
-            })
-
-
-            /** live data **/
-            viewModel.isRegistered.observe(viewLifecycleOwner,{ isRegister->
-                if(isRegister != null){ // user data
-                    findNavController().navigate(R.id.action_registration_to_login)
-                }
-            })
-
-
-
-            /** button **/
-            btnIHaveAnAccount.setOnClickListener {
+            btnLogin.setOnClickListener {
                 findNavController().navigate(R.id.action_registration_to_login)
             }
 
+            btnSignup.setOnClickListener {
+                viewModel.initRegister()
 
-            /** button **/
-            btnRegister.setOnClickListener {
-
-                _email = email.text.trim().toString()
-                _password = password.text.trim().toString()
-                _name = name.text.trim().toString()
-                _phone = phone.text.trim().toString()
+                name = signupName.text!!.trim().toString()
+                email = signupEmail.text!!.trim().toString()
+                phone = signupPhone.text!!.trim().toString()
+                password = signupPassword.text!!.trim().toString()
 
 
-                if (_email.isEmpty()){
-                    name.error = "please enter your name!"
-                    name.requestFocus()
-                    return@setOnClickListener
+
+                if (name.isEmpty() && email.isEmpty() && email.isEmpty() && password.isEmpty()){
+                    viewModel.setRegistrationError("all fields is required!")
+                }else{
+
+                    if (name.isEmpty()){
+                        binding.signupName.error = "please enter your name!"
+                        binding.signupName.requestFocus()
+                        return@setOnClickListener
+                    }
+
+                    if (phone.length < 9){
+                        binding.signupPhone.error = "9 char required!"
+                        binding.signupPhone.requestFocus()
+                        return@setOnClickListener
+                    }
+
+                    if (phone.length < 6){
+                        binding.signupPhone.error = "6 char required!"
+                        binding.signupPhone.requestFocus()
+                        return@setOnClickListener
+                    }
+                    if (email.isEmpty()){
+                        binding.signupEmail.error = "please enter your email!"
+                        binding.signupEmail.requestFocus()
+                        return@setOnClickListener
+                    }
+                    if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()){
+                        binding.signupEmail.error = "please enter a valid email"
+                        binding.signupEmail.requestFocus()
+                        return@setOnClickListener
+                    }
+
+                    if(password.isEmpty()){
+                        binding.signupPassword.error = "please enter your password!"
+                        binding.signupPassword.requestFocus()
+                        return@setOnClickListener
+                    }
+
+                    if (password.length < 6){
+                        binding.signupPassword.error = "6 char required!"
+                        binding.signupPassword.requestFocus()
+                        return@setOnClickListener
+                    }
+
+                    if (signupPolicySwitch.isChecked){
+                        val user = User("",name, email, password)
+                        viewModel.registration(user)
+                    }else{
+                        viewModel.setRegistrationError("You must confirm to the privacy policy!")
+                    }
+
+
                 }
-                if (_email.isEmpty()){
-                    email.error = "please enter your email!"
-                    email.requestFocus()
-                    return@setOnClickListener
-                }
-                if (!Patterns.EMAIL_ADDRESS.matcher(_email).matches()){
-                    email.error = "please enter a valid email"
-                    email.requestFocus()
-                    return@setOnClickListener
-                }
 
-                if(_password.isEmpty()){
-                    password.error = "please enter your password!"
-                    password.requestFocus()
-                    return@setOnClickListener
-                }
 
-                if (_password.length < 6){
-                    password.error = "6 char required!"
-                    password.requestFocus()
-                    return@setOnClickListener
-                }
 
-//                if (_phone.length < 9){
-//                    phone.error = "9 char required!"
-//                    phone.requestFocus()
-//                    return@setOnClickListener
-//                }
-//
-//                if (_phone.toInt() < 6){
-//                    password.error = "6 char required!"
-//                    password.requestFocus()
-//                    return@setOnClickListener
-//                }
 
-                val userData = User(
-                    genUUID(),
-                    _name,
-                    _email,
-                    _password,
-                    Calendar.getInstance().time,
-                    0,
-                    Calendar.getInstance().time)
-
-                viewModel.registration(userData)
             }
 
 
-
+            observation()
 
         }
 
 
 
+
         return binding.root
+    }
+
+
+    private fun observation() {
+
+
+        /** live data error message **/
+        viewModel.errorMessage.observe(viewLifecycleOwner,{error ->
+            if (error != null ){
+                binding.signupErrorMessage.text = error
+            }
+        })
+
+
+        /** live data progress **/
+        viewModel.inProgress.observe(viewLifecycleOwner, {
+            if (it != null){
+                when(it){
+                    StoreDataStatus.LOADING->{
+                        binding.signupErrorMessage.visibility = View.GONE
+                        binding.loader.visibility = View.VISIBLE
+                    }
+                    StoreDataStatus.DONE -> {
+                        binding.signupErrorMessage.visibility = View.GONE
+                        binding.loader.visibility = View.GONE
+                    }
+                    StoreDataStatus.ERROR ->{
+                        binding.signupErrorMessage.visibility = View.VISIBLE
+                        binding.loader.visibility = View.GONE
+                    }
+                }
+            }else{
+                binding.signupErrorMessage.visibility = View.GONE
+            }
+        })
+
+
+        /** live data is registered **/
+        viewModel.isRegistered.observe(viewLifecycleOwner,{user ->
+            if (user != null){
+                findNavController().navigate(R.id.action_registration_to_login)
+            }
+        })
+
+
+
     }
 
 

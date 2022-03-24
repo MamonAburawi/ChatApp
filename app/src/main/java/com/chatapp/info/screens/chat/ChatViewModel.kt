@@ -1,37 +1,44 @@
 package com.chatapp.info.screens.chat
 
 import android.app.Application
-import android.content.Context
 import android.net.Uri
 import android.util.Log
-import android.widget.ImageView
 import androidx.lifecycle.*
 import androidx.work.*
-import com.bumptech.glide.Glide
-import com.chatapp.info.data.Chat
-import com.chatapp.info.data.DateConverter
+import com.chatapp.info.ChatApplication
 import com.chatapp.info.data.Message
 import com.chatapp.info.data.User
-import com.chatapp.info.genUUID
-import com.chatapp.info.repository.server.ChatRepositoryOnline
+import com.chatapp.info.utils.*
+import com.chatapp.info.utils.getChatId
 import com.chatapp.info.workmanager.RemoveMessageWork
 import com.chatapp.info.workmanager.SendMessageWork
 import com.chatapp.info.workmanager.UploadImageWork
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage
+import com.chatapp.info.utils.Result
+import com.chatapp.info.utils.Result.Success
+import com.chatapp.info.utils.Result.Error
 import kotlinx.coroutines.*
 import java.util.*
 
-class ChatViewModel(application: Application,val user: User) : AndroidViewModel(application) {
+
+class ChatViewModel(application: Application, user: User , chatId: String) : AndroidViewModel(application) {
+
+    private val recipient = user
+    private var chatID = chatId
 
     companion object{
-        const val TAG = "Chat"
+        const val TAG = "ChatViewModel"
     }
 
-    private val worker by lazy {
-        WorkManager.getInstance(application)
-    }
+    private val worker by lazy { WorkManager.getInstance(application) }
+
+    private val sessionManager by lazy { ChatAppSessionManager(application) }
+    private val chatApplication by lazy { ChatApplication(application) }
+
+    private val messageRepository by lazy { chatApplication.messageRepository }
+    private val userRepository by lazy { chatApplication.userRepository }
+
+    private val userId = sessionManager.getUserIdFromSession()
+
 
     private val sendMessageWorker by lazy {
         OneTimeWorkRequest.Builder(SendMessageWork::class.java)
@@ -39,19 +46,27 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
     private val removeMessageWorker by lazy {
         OneTimeWorkRequest.Builder(RemoveMessageWork::class.java)
     }
-    private val uploadImageWorker by lazy{
+    private val uploadImageWorker by lazy {
         OneTimeWorkRequest.Builder(UploadImageWork::class.java)
     }
-    private val scopeIO = CoroutineScope(Dispatchers.IO + Job())
-    private val scopeMain = CoroutineScope(Dispatchers.Main + Job())
 
-    private val repositoryOnline = ChatRepositoryOnline()
 
-    private val _messages = MutableLiveData<List<Message>>()
-    val messages: LiveData<List<Message>> = _messages
 
-    private val _image = MutableLiveData<Uri>()
-    val image: LiveData<Uri> = _image
+    private var _chatMessages = MutableLiveData<List<Message>>()
+    val chatMessages: LiveData<List<Message>> get() = _chatMessages
+
+
+    private var _newMessages = MutableLiveData<List<Message>>()
+    val newMessages: LiveData<List<Message>> = _newMessages
+
+
+    private val _storeDataStatus = MutableLiveData<StoreDataStatus>()
+    val storeDataStatus: LiveData<StoreDataStatus> get() = _storeDataStatus
+
+
+    private var _allChatMessages = MutableLiveData<List<Message>>()
+    val allChatMessages: LiveData<List<Message>> get() = _allChatMessages
+
 
     private val _isSending = MutableLiveData<Boolean?>()
     val isSending: LiveData<Boolean?> = _isSending
@@ -59,13 +74,9 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
     private val _error = MutableLiveData<String>()
     val error: LiveData<String> = _error
 
+    private val _recipientU = MutableLiveData<User>()
+    val recipientU: LiveData<User> get() = _recipientU
 
-    // firebase fire store
-    private val _root = FirebaseFirestore.getInstance()
-    private val chatsPath = _root.collection("chats")
-
-    // firebase authentication
-    private val _auth = FirebaseAuth.getInstance()
 
 
 // TODO: add function to check if the connection is still or not and put it inside live data
@@ -81,17 +92,104 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
     val uploadImageWorkerId: LiveData<UUID> = _uploadImageWorkerId
 
 
-    var chatId = ""
 
     init {
-        _isSending.value = null
-
-        createNewChatId { id->
-            chatId = id
-        }
-
-
+        initChat()
     }
+
+    private fun initChat() {
+        _recipientU.value = recipient
+        if(chatID.isNotEmpty()){
+            observeLocalChat()
+            observeRemoteChat()
+        }else{
+            createNewChat()
+        }
+    }
+
+
+    private fun getMessagesLiveData(result: Result<List<Message>?>?): LiveData<List<Message>> {
+        val res = MutableLiveData<List<Message>>()
+        if (result is Success) {
+            Log.d(TAG, "result is success")
+            _storeDataStatus.value = StoreDataStatus.DONE
+            res.value = result.data?.sortedBy { it.date } ?: emptyList()
+        } else {
+            Log.d(TAG, "result is not success")
+            res.value = emptyList()
+            _storeDataStatus.value = StoreDataStatus.ERROR
+            if (result is Error)
+                Log.d(TAG, "getMessagesLiveData: Error Occurred: $result")
+        }
+        return res
+    }
+
+
+    fun observeRemoteChat(){
+        viewModelScope.launch {
+            messageRepository.observeMessagesOnRemoteByChatId(chatID){ messages ->
+                if (_chatMessages.value != null){
+                    refreshMessages(messages, _chatMessages.value!!)
+                }else{
+                    refreshMessages(messages, emptyList())
+                }
+            }
+        }
+    }
+
+
+
+    private fun observeLocalChat() {
+        _chatMessages = Transformations.switchMap(messageRepository.observeMessagesOnLocalByChatId(chatID)) {
+            getMessagesLiveData(it)
+        } as MutableLiveData<List<Message>>
+    }
+
+
+    fun removeAllMessages(){
+        viewModelScope.launch {
+            messageRepository.deleteAllMessages()
+        }
+    }
+
+
+    fun deleteMessage(message: Message) {
+        viewModelScope.launch {
+            messageRepository.deleteMessage(message)
+        }
+    }
+
+
+    private fun refreshMessages(remoteMessages: List<Message>, localMessages: List<Message>) {
+        viewModelScope.launch {
+                Log.d(TAG,"remote Messages: ${remoteMessages.size}")
+                Log.d(TAG,"local Messages: ${localMessages.size}")
+                val news = remoteMessages.findDiffElements(localMessages){it.messageId}
+                _newMessages.value = news
+                Log.d(TAG,"new Messages: ${news.size}")
+                messageRepository.insertMultipleMessages(news)
+
+            viewModelScope.launch {
+                if(localMessages.size > remoteMessages.size){
+                    val removed = localMessages.findDiffElements(remoteMessages){it.messageId}
+                    messageRepository.deleteMultipleMessages(removed)
+                    Log.d(TAG,"removed Messages: ${removed.size}")
+                }
+            }
+        }
+    }
+    
+
+    fun getChatMessages(chatId: String){
+        viewModelScope.launch {
+            val res = messageRepository.getMessagesByChatId(chatId)
+            if (res is Success){
+                val messages = res.data
+                _chatMessages.value = messages
+            }
+        }
+    }
+
 
 
 
@@ -100,155 +198,185 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
     }
 
 
-    // TODO: set function for download images from the server
 
-    fun downloadImage(imageId: String,onComplete:(Uri)-> Unit){
 
-            FirebaseStorage.getInstance()
-                .reference.child("images/$chatId/$imageId").downloadUrl.addOnSuccessListener {
-                    onComplete(it)
+
+
+
+    private fun createNewChat(){
+        viewModelScope.launch {
+            val newChatId = getChatId(userId!!,recipient.userId)
+            chatID = newChatId
+            observeLocalChat()
+            observeRemoteChat()
+            val chat = User.Chat(newChatId,userId,recipient.userId,Calendar.getInstance().time)
+            val res = async { userRepository.insertChat(chat) }
+            res.await()
+        }
+    }
+
+
+    fun sendMessage(text: String,type: MessageType,imgList:List<Uri>){
+        viewModelScope.launch {
+            val message: Message = when(type){
+                MessageType.TEXT-> {
+                    Message(getMessageId(userId!!,chatID), text, Date(), userId, recipient.userId, emptyList() , chatID,type.name)
                 }
-
-    }
-
-
-    fun addMessage(message: Message,image: Uri? = null){
-
-        scopeIO.launch {
-
-            val constraints = Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)
-                .build()
-
-            val dateToLong = DateConverter.to(message.time)
-
-            val data = Data.Builder()
-            data.putLong("message_id",message.id)
-            data.putString("text",message.text)
-            data.putLong("date", dateToLong!!)
-            data.putString("sender_id",message.senderId)
-            data.putString("recipient_id",message.recipientId)
-            data.putString("image_id",message.imageId)
-            data.putString("type",message.type)
-            data.putString("chat_id",chatId)
-            data.putString("image", image.toString())
-
-            uploadImageWorker
-                .setInputData(data.build())
-                .setConstraints(constraints)
-
-            sendMessageWorker
-                .setInputData(data.build())
-                .setConstraints(constraints)
-
-            val uploadImageBuilder = uploadImageWorker.build()
-            val sendMessageBuilder = sendMessageWorker.build()
-
-            if (image != null){ // image it will uploader then message it will be sent
-                worker.beginWith(uploadImageBuilder)
-                    .then(sendMessageBuilder)
-                    .enqueue()
-
-                withContext(Dispatchers.Main){
-                    _isSending.value = true
+                MessageType.IMAGE ->{
+                    val resImg = async { messageRepository.insertImages(imgList) }
+                    val imagesPaths = resImg.await()
+                    Message(getMessageId(userId!!,chatID), text, Date(), userId, recipient.userId, imagesPaths , chatID,type.name)
                 }
-            }else{
-                worker.beginWith(sendMessageBuilder).enqueue()
-            }
-
-            withContext(Dispatchers.Main){
-                _uploadImageWorkerId.value = uploadImageBuilder.id
-                _sendMessageWorkerId.value = sendMessageBuilder.id
-            }
-
-
-        }
-
-    }
-
-    fun removeMessage(message: Message){
-        scopeIO.launch {
-            val constraints = Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)
-                .build()
-
-            val data = Data.Builder()
-            data.putString("chat_id",chatId)
-            data.putString("message_id",message.id.toString())
-
-            removeMessageWorker
-                .setInputData(data.build())
-                .setConstraints(constraints)
-
-            val builder = removeMessageWorker.build()
-
-            worker.beginWith(builder).enqueue()
-
-            withContext(Dispatchers.Main){
-                _removeMessageWorkerId.value = builder.id
-            }
-        }
-    }
-
-
-    private fun createNewChatId(chatId:(String) -> Unit) {
-        val newChatId = genUUID()
-        scopeIO.launch {
-            _root.collection("users")
-                .document(_auth.currentUser!!.uid)
-                .collection("chats")
-                .document(user.id).get().addOnSuccessListener {
-                    if (it.exists()){
-                        val chat = it.toObject(Chat::class.java)
-                        Log.i(TAG,"old chat id: ${chat!!.chatId}")
-                        chatId(chat.chatId) // get chat id
-                        getMessages(chat.chatId)
-                    }else{
-                        chatId(newChatId) // create new chat id
-                        getMessages(newChatId)
-                        scopeIO.launch {
-                            val senderId = _auth.currentUser!!.uid
-                            val chat = Chat(newChatId,senderId,user.id,Calendar.getInstance().time)
-
-                            _root.collection("users")
-                                .document(senderId)
-                                .collection("chats")
-                                .document(user.id)
-                                .set(chat)
-
-                            _root.collection("users")
-                                .document(user.id)
-                                .collection("chats")
-                                .document(senderId)
-                                .set(chat)
-                        }
-                    }
+                MessageType.TEXT_IMAGE->{
+                    val resImg = async { messageRepository.insertImages(imgList) }
+                    val imagesPaths = resImg.await()
+                    Message(getMessageId(userId!!,chatID), text, Date(), userId, recipient.userId, imagesPaths , chatID,type.name)
                 }
-        }
-    }
-
-
-
-
-    private fun getMessages(chatId: String?){
-        scopeIO.launch {
-            if (chatId != null){
-                repositoryOnline.getMessages(chatsPath.document(chatId).collection("messages")).orderBy("time")
-                    .addSnapshotListener { value, error ->
-                        if (error == null){
-                            if (value != null){
-                                val messages = value.toObjects(Message::class.java) // here you will not receive the message each time when the data is updated
-                                _messages.value = messages
-
-                            }
-                        }
-                    }
-            }else{
-                Log.i(TAG,"chat id is not found!")
             }
+            messageRepository.insertMessage(message)
         }
     }
 
+
+
+
+
+//    fun addMessage(message: Message,image: Uri? = null){
+//
+//        scopeIO.launch {
+//
+//            val constraints = Constraints.Builder()
+//                .setRequiredNetworkType(NetworkType.CONNECTED)
+//                .build()
+//
+//            val dateToLong = DateTypeConverter().to(message.date)
+//
+//            val data = Data.Builder()
+//            data.putString("message_id",message.messageId)
+//            data.putString("text",message.text)
+//            data.putLong("date", dateToLong!!)
+//            data.putString("sender_id",message.senderId)
+//            data.putString("recipient_id",message.recipientId)
+//            data.putString("image_id",message.image)
+//            data.putString("type",message.type)
+//            data.putString("chat_id",chatId)
+//            data.putString("image", image.toString())
+//
+//            uploadImageWorker
+//                .setInputData(data.build())
+//                .setConstraints(constraints)
+//
+//            sendMessageWorker
+//                .setInputData(data.build())
+//                .setConstraints(constraints)
+//
+//            val uploadImageBuilder = uploadImageWorker.build()
+//            val sendMessageBuilder = sendMessageWorker.build()
+//
+//            if (image != null){ // image it will uploader then message it will be sent
+//                worker.beginWith(uploadImageBuilder)
+//                    .then(sendMessageBuilder)
+//                    .enqueue()
+//
+//                withContext(Dispatchers.Main){
+//                    _isSending.value = true
+//                }
+//            }else{
+//                worker.beginWith(sendMessageBuilder).enqueue()
+//            }
+//
+//            withContext(Dispatchers.Main){
+//                _uploadImageWorkerId.value = uploadImageBuilder.id
+//                _sendMessageWorkerId.value = sendMessageBuilder.id
+//            }
+//
+//        }
+//
+//    }
+
+//    fun removeMessage(message: Message){
+//        scopeIO.launch {
+//            val constraints = Constraints.Builder()
+//                .setRequiredNetworkType(NetworkType.CONNECTED)
+//                .build()
+//
+//            val data = Data.Builder()
+//            data.putString("chat_id",chatId)
+//            data.putString("message_id",message.messageId.toString())
+//
+//            removeMessageWorker
+//                .setInputData(data.build())
+//                .setConstraints(constraints)
+//
+//            val builder = removeMessageWorker.build()
+//
+//            worker.beginWith(builder).enqueue()
+//
+//            withContext(Dispatchers.Main){
+//                _removeMessageWorkerId.value = builder.id
+//            }
+//        }
+//    }
+
+
+//    private fun createNewChatId(chatId:(String) -> Unit) {
+//        val newChatId = genUUID()
+//        scopeIO.launch {
+//            _root.collection("users")
+//                .document(_auth.currentUser!!.uid)
+//                .collection("chats")
+//                .document(userId!!).get().addOnSuccessListener {
+//                    if (it.exists()){
+//                        val chat = it.toObject(Chat::class.java)
+//                        Log.i(TAG,"old chat id: ${chat!!.chatId}")
+//                        chatId(chat.chatId) // get chat id
+//                        getMessages(chat.chatId)
+//                    }else{
+//                        chatId(newChatId) // create new chat id
+//                        getMessages(newChatId)
+//                        scopeIO.launch {
+//                            val senderId = _auth.currentUser!!.uid
+//                            val chat = Chat(newChatId,senderId,userId,Calendar.getInstance().time)
+//
+//                            _root.collection("users")
+//                                .document(senderId)
+//                                .collection("chats")
+//                                .document(userId)
+//                                .set(chat)
+//
+//                            _root.collection("users")
+//                                .document(userId)
+//                                .collection("chats")
+//                                .document(senderId)
+//                                .set(chat)
+//                        }
+//                    }
+//                }
+//        }
+//    }
+//
+
+
+//
+//    private fun getMessages(chatId: String?){
+//        scopeIO.launch {
+//            if (chatId != null){
+//                repositoryOnline.getMessages(chatsPath.document(chatId).collection("messages")).orderBy("time")
+//                    .addSnapshotListener { value, error ->
+//                        if (error == null){
+//                            if (value != null){
+//                                val messages = value.toObjects(Message::class.java) // here you will not receive the message each time when the data is updated
+//                                _messages.value = messages
+//
+//                            }
+//                        }
+//                    }
+//            }else{
+//                Log.i(TAG,"chat id is not found!")
+//            }
+//        }
+//    }
+//
 
 
 
@@ -258,7 +386,5 @@ class ChatViewModel(application: Application,val user: User) : AndroidViewModel(
     override fun onCleared() {
         super.onCleared()
 
-        scopeIO.cancel()
-        scopeMain.cancel()
     }
 }

@@ -56,18 +56,11 @@
                 android:orientation="horizontal">
 
 
-                <ProgressBar
-                    android:layout_width="15dp"
-                    android:layout_height="15dp"
-                    android:visibility="visible"
-                    />
-
-
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     tools:text="12:12pm"
-                    dateToString="@{message.time}"
+                    dateToString="@{message.date}"
                     android:gravity="end"
                     android:textColor="@android:color/white"
                     android:paddingStart="4dp"

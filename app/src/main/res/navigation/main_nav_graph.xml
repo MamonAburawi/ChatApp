@@ -18,9 +18,14 @@
         android:id="@+id/chat"
         android:name="com.chatapp.info.screens.chat.Chat"
         android:label="Chat"
-        tools:layout="@layout/chat">
-        <argument
-            android:name="user"
-            app:argType="com.chatapp.info.data.User" />
+        tools:layout="@layout/chat"/>
+    <fragment
+        android:id="@+id/userChats"
+        android:name="com.chatapp.info.screens.user_chats.UserChats"
+        android:label="UserChats"
+        tools:layout="@layout/user_chats">
+        <action
+            android:id="@+id/action_userChats_to_chat"
+            app:destination="@id/chat" />
     </fragment>
 </navigation>

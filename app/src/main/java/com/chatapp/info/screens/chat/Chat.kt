@@ -8,86 +8,93 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
-import android.widget.Toast
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.ViewModelProvider
-import androidx.navigation.fragment.navArgs
+import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.work.WorkManager
-import com.airbnb.epoxy.EpoxyRecyclerView
 import com.chatapp.info.*
-
 import com.chatapp.info.data.Message
+import com.chatapp.info.data.User
 import com.chatapp.info.databinding.ChatBinding
-import com.google.firebase.auth.FirebaseAuth
+import com.chatapp.info.screens.users.UsersViewModel
+import com.chatapp.info.utils.*
 import gun0912.tedimagepicker.builder.TedImagePicker
 import gun0912.tedimagepicker.builder.type.MediaType
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.random.Random
+
 
 class Chat: Fragment() {
 
+
+    companion object {
+        const val TAG = "ChatFragment"
+        const val LAST_ITEM = 10000 * 10000
+    }
+
     private val ctx by lazy { requireContext() }
-    private val userInfo by lazy {
-        navArgs<ChatArgs>().value.user
-    }
-    private val viewModel by lazy {
-        val factory = ChatViewModelFactory(requireActivity().application,userInfo)
-        ViewModelProvider(this,factory)[ChatViewModel::class.java]
-    }
-    private val senderId by lazy {
-        FirebaseAuth.getInstance().currentUser!!.uid
-    }
-    private val worker by lazy {
-        WorkManager.getInstance(requireContext())
-    }
+
+    private val worker by lazy { WorkManager.getInstance(requireContext()) }
     private lateinit var binding : ChatBinding
+    private lateinit var viewModel: ChatViewModel
+    private val usersViewModel by activityViewModels<UsersViewModel>()
+    private lateinit var chatController : ChatController
     private var selectedUriList = ArrayList<Uri>()
-    private var m: Message? = null
-    private var currentMessages = ArrayList<Message>()
+
+
+
+
+
+    // TODO: create layout for send image & message.
 
 
     @SuppressLint("NotifyDataSetChanged")
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         binding = DataBindingUtil.inflate(inflater, R.layout.chat,container,false)
 
+
+
+
+        initChat()
+        setViews()
+        setObserves()
+
         binding.apply {
 
-            utilContext = context
-            binding.user = userInfo
-            binding.lifecycleOwner = this@Chat
 
-            liveData()
-            workersInfo()
-            initChatItems(currentMessages)
-
-            // TODO: set message for the user tell him you message will be sent once the connection is back with snake bar
-
-            btnSend.setOnLongClickListener {
-                recyclerViewChat.requestModelBuild()
-                true
+            /** button option **/
+            btnOption.setOnClickListener {
+                viewModel.removeAllMessages()
             }
+
 
             /** button send **/
             btnSend.setOnClickListener {
-                val text = message.text.trim().toString()
-                if (text.isNotEmpty()){
-                    val mess = Message(Random.nextLong(),text,Calendar.getInstance().time,senderId,userInfo.id,"", MessageType.TEXT)
-                    m = mess
-                    viewModel.addMessage(mess)
-                    message.setText("")
+
+                val text = binding.message.text.trim().toString()
+                // TODO: compress the images before send it inside work manager
+
+                if (text != "" && selectedUriList.isEmpty()) { // message type text.
+                    Log.d(TAG,"Send message type text")
+                    viewModel.sendMessage(text,MessageType.TEXT, emptyList())
+                }
+                if (text == "" && selectedUriList.isNotEmpty()) { // message type image.
+                    Log.d(TAG,"Send message type image: ${selectedUriList[0]}")
+
+                    viewModel.sendMessage(text,MessageType.IMAGE, selectedUriList)
+                }
+                if(text != "" && selectedUriList.isNotEmpty()){ // message type text & image
+                    Log.d(TAG,"Send message type text & image")
+                    viewModel.sendMessage(text,MessageType.TEXT_IMAGE, selectedUriList)
                 }
 
-                if (selectedUriList.isNotEmpty()){
-                    selectedUriList.forEach { image ->
-                        val imageId = genUUID()
-                        val message = Message(Random.nextLong(),"",Calendar.getInstance().time,senderId,userInfo.id, imageId,MessageType.IMAGE)
-                        viewModel.addMessage(message,image)
-                    }
-                    selectedUriList.clear()
-                    recyclerViewImages.visibility = View.GONE
-                }
+                selectedUriList.clear()
+                message.setText("")
+                recyclerViewImages.visibility = View.GONE
+                scrollingToPosition(LAST_ITEM)
 
 
             }
@@ -95,7 +102,7 @@ class Chat: Fragment() {
 
             /** button back **/
             btnBack.setOnClickListener {
-                navigateToBackScreen()
+                findNavController().navigateUp()
             }
 
 
@@ -109,6 +116,98 @@ class Chat: Fragment() {
 
         return binding.root
     }
+
+
+    override fun onResume() {
+        super.onResume()
+
+        viewModel.observeRemoteChat()
+    }
+
+    override fun onPause() {
+        super.onPause()
+
+        viewModel.observeRemoteChat()
+    }
+
+    private fun setViews() {
+        binding.apply {
+
+
+            /** onMessageClick **/
+            chatController = ChatController(requireContext(),ChatController.MessageClickListener{ message ->
+                // TODO: check if item sender or recipient image or text.
+                // TODO: if image navigate to new screen and display images
+                viewModel.deleteMessage(message)
+            })
+            chatController.setData(emptyList())
+            recyclerViewChat.adapter = chatController.adapter
+
+
+
+
+
+//            recyclerViewChat.setOnScrollListener(object : RecyclerView.OnScrollListener() {
+//                override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+//                    super.onScrollStateChanged(recyclerView, newState) }
+//
+//                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+//                    if (dy < 0){
+//
+//                        Log.d(TAG,"scrolling up")
+//                    }else{
+//                        Log.d(TAG,"scrolling down")
+//                    }
+//                }
+//            })
+
+
+        }
+    }
+
+
+    private fun scrollingToPosition(p: Int){
+        binding.recyclerViewChat.smoothScrollToPosition(p)
+    }
+
+
+
+    private fun isLastItemVisible(): Boolean {
+        val layoutManager: LinearLayoutManager = binding.recyclerViewChat.layoutManager as LinearLayoutManager
+        val pos: Int = layoutManager.findLastCompletelyVisibleItemPosition()
+        val numItems: Int = binding.recyclerViewChat.adapter!!.itemCount
+        return (pos >= numItems - 1)
+    }
+
+    private fun setObserves() {
+
+        /** live data messages **/
+        viewModel.chatMessages.observe(viewLifecycleOwner){ chatMessages ->
+
+            // the recycler view will be scrolling to display new data if last item is visible.
+            if (isLastItemVisible()) {
+                scrollingToPosition(LAST_ITEM)
+            }
+
+            if (chatMessages.isNotEmpty()){
+                chatController.setData(chatMessages)
+            }else{ // no messages
+                chatController.setData(emptyList())
+            }
+
+        }
+
+
+        /** live data new messages **/
+        viewModel.newMessages.observe(viewLifecycleOwner){ newMessages ->
+            if (newMessages.isNotEmpty()){
+
+            }
+        }
+
+
+    }
+
 
 
     private fun selectImages(){
@@ -145,53 +244,7 @@ class Chat: Fragment() {
 
 
 
-    // TODO: add remove image function for sender image item
 
-
-    private fun initChatItems(messages: ArrayList<Message>){
-        binding.recyclerViewChat.withModels {
-            messages.forEachIndexed { index, message ->
-                if (message.senderId == senderId){ // sender layout
-                    if(message.type == MessageType.TEXT){
-                        senderMessage {
-                            id(message.id)
-                            message(message)
-                            clickListener { v->
-                                pupUpMenu(v,message)
-                            }
-                        }
-                    }else{
-                        
-                        senderImage {
-                            id(message.id)
-                            message(message)
-                            clickListener { v->
-
-                            }
-                        }
-
-
-                    }
-
-                }else{ // recipient layout
-                    recipientMessage {
-                        id(message.id)
-                        message(message)
-                        clickListener { v ->
-
-                        }
-                    }
-
-                }
-            }
-
-        }
-    }
-
-
-    private fun navigateToBackScreen(){
-        requireActivity().onBackPressed()
-    }
 
 
     private fun pupUpMenu(v: View, message: Message){
@@ -200,8 +253,7 @@ class Chat: Fragment() {
         popupMenu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.itemRemove -> {
-                    m = message
-                    viewModel.removeMessage(message)
+                    viewModel.deleteMessage(message)
                 }
             }
             true
@@ -210,40 +262,25 @@ class Chat: Fragment() {
     }
 
 
-    private fun liveData() {
 
-        /** live data progress sending **/
-        viewModel.isSending.observe(viewLifecycleOwner,{ isSending ->
-            if (isSending != null){
-                if (isSending){
-                    binding.progressMessage.visibility = View.VISIBLE
-                }else{
-                    binding.progressMessage.visibility = View.GONE
-                }
-            }
-        })
 
-        /** live data messages **/
-        viewModel.messages.observe(viewLifecycleOwner,{ allMessages ->
-            if (allMessages != null){
-                val newMessages = allMessages.minus(currentMessages.toSet()) // here we
-                currentMessages.addAll(newMessages)
-                updateRV(binding.recyclerViewChat)
 
-                Log.i("chatsdata","messages: ${currentMessages.size}")
+    private fun initChat() {
+        val recipient =  arguments?.get(KEY_RECIPIENT) as User
+        val currentUser = usersViewModel.currentUser.value
+        val currentUserChats = currentUser!!.chats
+        val recipientUserChats = recipient.chats
+        val chatId = findCommon(currentUserChats,recipientUserChats)
+//        viewModel.initChat(recipientData.userId)
 
-            }else{
-                Toast.makeText(ctx,"no messages found!",Toast.LENGTH_SHORT).show()
-            }
-        })
-
+        viewModel = ViewModelProvider(this,ChatViewModelFactory(requireActivity().application,recipient,chatId))[ChatViewModel::class.java]
+        binding.chatViewModel = viewModel
+        binding.lifecycleOwner = this@Chat
 
     }
 
 
-    private fun updateRV(rv: EpoxyRecyclerView){
-        rv.requestModelBuild()
-    }
+
 
 
     private fun workersInfo(){
@@ -256,7 +293,7 @@ class Chat: Fragment() {
                         Log.i("worker","send message is running..")
                     }
                     if (it.state.isFinished){ // message is sent successfully
-                        binding.recyclerViewChat.smoothScrollToPosition(currentMessages.size)
+
                     }
                 })
             }
@@ -290,8 +327,12 @@ class Chat: Fragment() {
 
 
 
+
+
     }
 
 
 
 }
+
+
