@@ -52,20 +52,17 @@ class LaunchActivity : AppCompatActivity() {
 
 
 
-    fun initTime(){
+    private fun initTime(){
         timer = object : CountDownTimer(THREE_SECOND, ONE_SECOND){
             override fun onTick(p0: Long) {
-
             }
-
             override fun onFinish() {
                 isRememberOn()
             }
-
         }
         timer.start()
-
     }
+
 
     fun isRememberOn(){
         if (sessionManager.isRememberMeOn()){
@@ -76,8 +73,8 @@ class LaunchActivity : AppCompatActivity() {
     }
 
 
-    override fun onResume() {
-        super.onResume()
+    override fun onStart() {
+        super.onStart()
 
         if (FirebaseAuth.getInstance().currentUser != null){
             initData()

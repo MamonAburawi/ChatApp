@@ -33,7 +33,7 @@ class UserRepository(
 
 
     override suspend fun signUp(user: User) {
-        sessionManager.createLoginSession(user.userId, user.name, false,)
+        sessionManager.createLoginSession(user.userId, user.name, false)
         Log.d(TAG, "on SignUp: Updating user in Local Source")
         userLocalDataSource.addUser(user)
         Log.d(TAG, "on SignUp: Updating userdata on Remote Source")

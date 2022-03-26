@@ -27,7 +27,7 @@ class ChatAppSessionManager(context: Context) {
 	}
 
 
-	fun isRememberMeOn(): Boolean = userSession.getBoolean(KEY_REMEMBER_ME, false)
+	fun isRememberMeOn(): Boolean = userSession.getBoolean(KEY_REMEMBER_ME,false)
 
 	fun getPhoneNumber(): String? = userSession.getString(KEY_PHONE, null)
 

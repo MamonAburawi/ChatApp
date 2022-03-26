@@ -7,7 +7,9 @@ import com.chatapp.info.ChatApplication
 import com.chatapp.info.data.ChatDetails
 
 import com.chatapp.info.data.Message
+import com.chatapp.info.data.User
 import com.chatapp.info.screens.chat.ChatViewModel
+import com.chatapp.info.utils.ChatAppSessionManager
 import com.chatapp.info.utils.Result
 import com.chatapp.info.utils.StoreDataStatus
 import com.chatapp.info.utils.findDiffElements
@@ -20,40 +22,70 @@ class ChatsViewModel(application: Application) : AndroidViewModel(application) {
     }
     private val chatApplication by lazy { ChatApplication(application) }
     private val messageRepository by lazy { chatApplication.messageRepository }
+    private val userRepository by lazy { chatApplication.userRepository }
 
+    private val appSession by lazy { ChatAppSessionManager(application) }
+    private val userId = appSession.getUserIdFromSession()
 
     private var _allMessages = MutableLiveData<List<Message>>()
     val allMessages: LiveData<List<Message>> get() = _allMessages
 
 
-    var _chatsDetails = MutableLiveData<List<ChatDetails>>()
+    private var _currentUser = MutableLiveData<User>()
+    val currentUser: LiveData<User> get() = _currentUser
 
 
 
     init {
-        observeLocalMessages()
+//        observeLocalMessages()
+        observeLocalUser()
     }
 
 
-    private fun observeLocalMessages() {
-        _allMessages = Transformations.switchMap(messageRepository.observeMessage()) {
-            getMessagesLiveData(it)
-        } as MutableLiveData<List<Message>>
+
+
+    fun observeLocalUser(){
+        _currentUser = Transformations.switchMap(userRepository.observeLocalUser(userId!!)) {
+            getUserLiveData(it!!)
+        } as MutableLiveData<User>
     }
 
-    private fun getMessagesLiveData(result: Result<List<Message>?>?): LiveData<List<Message>> {
-        val res = MutableLiveData<List<Message>>()
+
+    private fun getUserLiveData(result: Result<User>): LiveData<User?> {
+        val res = MutableLiveData<User?>()
         if (result is Result.Success) {
-            Log.d(TAG, "result is success")
-            res.value = result.data?.sortedBy { it.date } ?: emptyList()
+            Log.d(ChatViewModel.TAG, "result is success")
+            res.value = result.data
         } else {
-            Log.d(TAG, "result is not success")
-            res.value = emptyList()
+            Log.d(ChatViewModel.TAG, "result is not success")
             if (result is Result.Error)
-                Log.d(TAG, "getMessagesLiveData: Error Occurred: $result")
+                Log.d(ChatViewModel.TAG, "getMessagesLiveData: Error Occurred: $result")
         }
         return res
     }
+
+
+
+
+//    private fun observeLocalMessages() {
+//        _allMessages = Transformations.switchMap(messageRepository.observeMessage()) {
+//            getMessagesLiveData(it)
+//        } as MutableLiveData<List<Message>>
+//    }
+//
+//    private fun getMessagesLiveData(result: Result<List<Message>?>?): LiveData<List<Message>> {
+//        val res = MutableLiveData<List<Message>>()
+//        if (result is Result.Success) {
+//            Log.d(TAG, "result is success")
+//            res.value = result.data?.sortedBy { it.date } ?: emptyList()
+//        } else {
+//            Log.d(TAG, "result is not success")
+//            res.value = emptyList()
+//            if (result is Result.Error)
+//                Log.d(TAG, "getMessagesLiveData: Error Occurred: $result")
+//        }
+//        return res
+//    }
 
 
 

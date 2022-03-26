@@ -46,8 +46,6 @@ class Chat: Fragment() {
 
 
 
-
-
     // TODO: create layout for send image & message.
 
 

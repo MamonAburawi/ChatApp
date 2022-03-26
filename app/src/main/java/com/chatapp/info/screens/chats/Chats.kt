@@ -9,6 +9,8 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModelProvider
 
 import com.chatapp.info.R
@@ -106,8 +108,7 @@ class Chats : Fragment() {
 
     private fun setObservers() {
 
-
-        userViewModel.currentUser.observe(viewLifecycleOwner){
+        chatsViewModel.currentUser.observe(viewLifecycleOwner) {
             val chats = it?.chats
             chats?.forEach {
 //                chatViewModel.getLastMessage(it.chatId)
@@ -120,28 +121,21 @@ class Chats : Fragment() {
 
 
 
-        /** live data all messages **/
-        chatViewModel.allMessages.observe(viewLifecycleOwner){ allMessages ->
-            Log.d(TAG,"allMessages : ${allMessages.size}")
-            if (allMessages.isNotEmpty()){
-//                initChats(allMessages)
-//                chatViewModel.initChats(allMessages,userViewModel.currentUser.value?.chats!!)
-            }
-        }
-
-
-
-//        chatsViewModel._chatsDetails.observe(viewLifecycleOwner){ chatDetails ->
-//            if (chatDetails != null){
-//                Log.d(TAG,"chatsDetails: ${chatDetails.size}")
-//                chatsController.setData(chatDetails)
-//            }else{
-//                chatsController.setData(emptyList())
+//        // chats data is not live ! you must fitch the live user data.
+//        userViewModel.currentUser.observe(viewLifecycleOwner) {
+//            val chats = it?.chats
+//            chats?.forEach {
+////                chatViewModel.getLastMessage(it.chatId)
+//                Log.d(TAG,"chat details : lastMessage ${it.lastMessage}")
+//                Toast.makeText(context,"lastMessage: ${it.lastMessage}",Toast.LENGTH_SHORT).show()
 //            }
+//
+//            Log.d(TAG,"chats : ${chats?.size}")
 //        }
 //
-//        /** live data chats details **/
-//
+
+
+
 
     }
 
