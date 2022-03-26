@@ -9,7 +9,6 @@ import com.chatapp.info.ChatApplication
 import com.chatapp.info.data.ChatDetails
 import com.chatapp.info.data.Message
 import com.chatapp.info.data.User
-import com.chatapp.info.screens.chats.Chats
 import com.chatapp.info.utils.*
 import com.chatapp.info.utils.getChatId
 import com.chatapp.info.workmanager.RemoveMessageWork
@@ -194,7 +193,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 _newMessages.value = news
                 messageRepository.insertMultipleMessages(news)
                 val lastMessage = news.last()
-                updateChat(lastMessage.chatId,lastMessage.date,lastMessage.text)
+                updateChat(lastMessage)
 
             }
 
@@ -203,7 +202,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     val removed = localMessages.findDiffElements(remoteMessages){it.messageId}
                     messageRepository.deleteMultipleMessages(removed)
                     val lastM = removed.last()
-                    updateChat(lastM.chatId,lastM.date,lastM.text)
+                    updateChat(lastM)
                     Log.d(TAG,"removed Messages: ${removed.size}")
                 }
             }
@@ -266,18 +265,18 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
             messageRepository.insertMessage(message)
-            updateChat(message.chatId,message.date,message.text)
+            updateChat(message)
         }
     }
 
 
-    private suspend fun updateChat(chatId: String,lastUpdate: Date,lastMessage: String){
+    private suspend fun updateChat(message: Message){
         val chats = userRepository.getUser(userId!!)?.chats
-        val chat = chats?.filter { it.chatId == chatId }?.toMutableList()?.get(0)
+        val chat = chats?.filter { it.chatId == message.chatId }?.toMutableList()?.get(0)
         val new = chats?.toMutableList()
         new?.remove(chat)
-        chat?.lastUpdate = lastUpdate
-        chat?.lastMessage = lastMessage
+        chat?.lastUpdate = message.date
+        chat?.lastMessage = message.text
         new?.add(chat!!)
 
         if(new != null){

@@ -6,7 +6,7 @@
     <data>
         <variable
             name="chat"
-            type="com.chatapp.info.data.ChatDetails" />
+            type="com.chatapp.info.data.User.Chat" />
 
         <variable
             name="clickListener"
@@ -35,7 +35,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            dateToString="@{chat.lastTime}"
+            dateToString="@{chat.lastUpdate}"
             android:layout_marginEnd="@dimen/dimen_10"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -61,7 +61,7 @@
             android:layout_marginTop="20dp"
             android:textColor="@color/black"
             android:textStyle="bold"
-            android:text="@{chat.recipient.name}"
+            android:text="@{chat.recipientName}"
             app:layout_constraintStart_toEndOf="@+id/user_Image"
             app:layout_constraintTop_toTopOf="parent"
             tools:text="Mohamed Ali" />

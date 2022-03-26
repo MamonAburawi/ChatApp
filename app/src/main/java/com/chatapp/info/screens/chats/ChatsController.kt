@@ -12,7 +12,7 @@ import com.chatapp.info.data.User
 import com.chatapp.info.utils.ChatAppSessionManager
 import com.chatapp.info.utils.MessageType
 
-class ChatsController(val context: Context, val onClickListener: ChatClickListener) : TypedEpoxyController<List<ChatDetails>>() {
+class ChatsController(val context: Context, val onClickListener: ChatClickListener) : TypedEpoxyController<List<User.Chat>>() {
 
     companion object{
         private const val TAG = "ChatsController"
@@ -22,14 +22,14 @@ class ChatsController(val context: Context, val onClickListener: ChatClickListen
     private val userId = sessionManager.getUserIdFromSession()
 
 
-    override fun buildModels(data: List<ChatDetails>?) {
-        data?.forEachIndexed { index, chatDetails ->
+    override fun buildModels(data: List<User.Chat>?) {
+        data?.forEachIndexed { index, chat ->
 
             chat {
                 id(index)
-                chat(chatDetails)
+                chat(chat)
                 clickListener { v->
-                    onClickListener.onClick(chatDetails)
+                    onClickListener.onClick(chat)
                 }
             }
         }
@@ -37,8 +37,8 @@ class ChatsController(val context: Context, val onClickListener: ChatClickListen
 
 
 
-    class ChatClickListener(val clickListener: (ChatDetails) -> Unit) {
-        fun onClick(chat: ChatDetails) = clickListener(chat)
+    class ChatClickListener(val clickListener: (User.Chat) -> Unit) {
+        fun onClick(chat: User.Chat) = clickListener(chat)
     }
 
 }
