@@ -20,11 +20,11 @@ interface MessageDataSource {
 
     suspend fun getMessageById(messageId: String): Result<Message?>
 
+    suspend fun getLastMessage(chatId: String): Result<Message?>
+
     suspend fun insertMessage(message: Message)
 
-
     suspend fun updateMessage(message: Message)
-
 
     suspend fun getAllChatsByUserId(userId: String): Result<List<User.Chat>> {
         return Success(emptyList())

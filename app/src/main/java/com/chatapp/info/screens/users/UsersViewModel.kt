@@ -1,20 +1,16 @@
 package com.chatapp.info.screens.users
 
 import android.app.Application
-import android.os.Build
-import androidx.annotation.RequiresApi
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.viewModelScope
+import android.util.Log
+import androidx.lifecycle.*
 import com.chatapp.info.ChatApplication
 import com.chatapp.info.data.User
+import com.chatapp.info.screens.chat.ChatViewModel
 import com.chatapp.info.utils.ChatAppSessionManager
+import com.chatapp.info.utils.Result
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.*
-import java.util.*
-import kotlin.collections.ArrayList
 
 class UsersViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -26,8 +22,8 @@ class UsersViewModel(application: Application) : AndroidViewModel(application) {
 
     private val userId = sessionManager.getUserIdFromSession()
 
-    private val _currentUser = MutableLiveData<User?>()
-    val currentUser: LiveData<User?> = _currentUser
+    private var _currentUser = MutableLiveData<User>()
+    val currentUser: LiveData<User> = _currentUser
 
 
     private val scopeIO = CoroutineScope(Dispatchers.IO + Job())
@@ -39,57 +35,91 @@ class UsersViewModel(application: Application) : AndroidViewModel(application) {
     private val _signOut = MutableLiveData<Boolean?>()
     val signOut: LiveData<Boolean?> = _signOut
 
-    // firebase fire store
-    private val _root = FirebaseFirestore.getInstance()
-    private val _usersPath = _root.collection("users")
 
-    // firebase authentication
-    private val _auth = FirebaseAuth.getInstance()
 
-    private var user: User? = null
+
+    // todo get live data of users from the local .
+    // todo observe the data of users and update local users data.
 
 
     init {
         _signOut.value = false
-        getUser()
-        getAllUser()
+//        getCurrentUser()
     }
 
 
 
+    fun observeLocalUser(){
+        _currentUser = Transformations.switchMap(userRepository.observeLocalUser(userId!!)) {
+            getUserLiveData(it!!)
+        } as MutableLiveData<User>
+    }
 
 
-     fun getAllUser(){
+    private fun getUserLiveData(result: Result<User>): LiveData<User?> {
+        val res = MutableLiveData<User?>()
+        if (result is Result.Success) {
+            Log.d(ChatViewModel.TAG, "result is success")
+            res.value = result.data
+        } else {
+            Log.d(ChatViewModel.TAG, "result is not success")
+            if (result is Result.Error)
+                Log.d(ChatViewModel.TAG, "getMessagesLiveData: Error Occurred: $result")
+        }
+        return res
+    }
+
+
+
+    fun getLocalUsers(){
         viewModelScope.launch {
             val users = userRepository.getAllUsers()
-            withContext(Dispatchers.Main){
-                users as ArrayList<User>
-                users.remove(_currentUser.value)
-                _users.value = users
+            if (users != null){
+                val currentUser = users.filter { it.userId == userId }[0]
+                val list = users.toMutableList()
+                list.remove(currentUser)
+                withContext(Dispatchers.Main){
+                    _users.value = list
+                    _currentUser.value = currentUser
+                }
             }
         }
     }
 
-    
-    fun hardRefreshData(){
+
+    fun observeRemoteUser(){
         viewModelScope.launch {
-            userRepository.hardRefreshData()
+            userRepository.observeAndRefreshUser(userId!!)
         }
     }
 
-    fun getUser() {
+
+    fun hardRefreshUsesData(){
         viewModelScope.launch {
-            val user = userRepository.getUser(userId!!)
-            withContext(Dispatchers.Main){
-                _currentUser.value = user
-            }
+            userRepository.hardRefreshUsersData()
         }
+    }
+
+
+//    fun getCurrentUser() {
+//        viewModelScope.launch {
+//            val user = getUser(userId!!)
+//            withContext(Dispatchers.Main){
+//                _currentUser.value = user!!
+//            }
+//        }
+//    }
+//
+
+
+    suspend fun getUser(userId : String): User? {
+        return userRepository.getUser(userId)
     }
 
 
     fun filterBySearch(query: String) {
         if (query.isEmpty()){
-            getAllUser()
+            getLocalUsers()
         }else{
             val users = _users.value
             _users.value = users?.filter { it.name.lowercase().contains(query.lowercase()) }
@@ -101,7 +131,8 @@ class UsersViewModel(application: Application) : AndroidViewModel(application) {
 
     fun signOut(){
         scopeIO.launch {
-            _auth.signOut()
+            userRepository.signOut()
+//            _auth.signOut()
             withContext(Dispatchers.Main){
                 _signOut.value = true
             }

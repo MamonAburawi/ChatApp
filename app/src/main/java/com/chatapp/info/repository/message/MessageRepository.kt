@@ -176,6 +176,10 @@ class MessageRepository(
         messageLocalDataSource.deleteAllMessages()
     }
 
+    override suspend fun getLastMessage(chatId: String): Result<Message?> {
+       return messageLocalDataSource.getLastMessage(chatId)
+    }
+
     override suspend fun deleteAllMessagesByChatId(chatId: String) {
         messageLocalDataSource.deleteAllMessagesByChatId(chatId)
     }

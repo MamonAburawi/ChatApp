@@ -2,7 +2,6 @@ package com.chatapp.info.data
 
 import android.os.Parcelable
 import androidx.room.*
-import com.chatapp.info.utils.DateTypeConverter
 import com.chatapp.info.utils.ObjectListDataTypeConverter
 import kotlinx.parcelize.Parcelize
 import java.util.*
@@ -47,7 +46,11 @@ data class User(
         val chatId: String = "",
         val senderId: String = "",
         val recipientId: String = "",
-        val date: Date = Calendar.getInstance().time,
+        var senderName: String = "",
+        var recipientName: String = "",
+        var lastMessage: String = "",
+        var image: String = "",
+        var lastUpdate: Date = Calendar.getInstance().time,
 
         ): Parcelable {
         fun toHashMap(): HashMap<String, Any> {
@@ -55,7 +58,11 @@ data class User(
                 "chatId" to chatId,
                 "senderId" to senderId,
                 "recipientId" to recipientId,
-                "date" to date,
+                "senderName" to senderName,
+                "recipientName" to recipientName,
+                "lastMessage" to lastMessage,
+                "image" to image,
+                "lastUpdate" to lastUpdate,
             )
         }
     }

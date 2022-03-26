@@ -6,8 +6,10 @@ import android.util.Log
 import androidx.lifecycle.*
 import androidx.work.*
 import com.chatapp.info.ChatApplication
+import com.chatapp.info.data.ChatDetails
 import com.chatapp.info.data.Message
 import com.chatapp.info.data.User
+import com.chatapp.info.screens.chats.Chats
 import com.chatapp.info.utils.*
 import com.chatapp.info.utils.getChatId
 import com.chatapp.info.workmanager.RemoveMessageWork
@@ -20,10 +22,9 @@ import kotlinx.coroutines.*
 import java.util.*
 
 
-class ChatViewModel(application: Application, user: User , chatId: String) : AndroidViewModel(application) {
+class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val recipient = user
-    private var chatID = chatId
+
 
     companion object{
         const val TAG = "ChatViewModel"
@@ -39,7 +40,6 @@ class ChatViewModel(application: Application, user: User , chatId: String) : And
 
     private val userId = sessionManager.getUserIdFromSession()
 
-
     private val sendMessageWorker by lazy {
         OneTimeWorkRequest.Builder(SendMessageWork::class.java)
     }
@@ -54,6 +54,9 @@ class ChatViewModel(application: Application, user: User , chatId: String) : And
 
     private var _chatMessages = MutableLiveData<List<Message>>()
     val chatMessages: LiveData<List<Message>> get() = _chatMessages
+
+    private var _allMessages = MutableLiveData<List<Message>>()
+    val allMessages: LiveData<List<Message>> get() = _allMessages
 
 
     private var _newMessages = MutableLiveData<List<Message>>()
@@ -74,8 +77,9 @@ class ChatViewModel(application: Application, user: User , chatId: String) : And
     private val _error = MutableLiveData<String>()
     val error: LiveData<String> = _error
 
-    private val _recipientU = MutableLiveData<User>()
-    val recipientU: LiveData<User> get() = _recipientU
+    val recipientU = MutableLiveData<User>()
+    val chatId = MutableLiveData<String>()
+
 
 
 
@@ -91,21 +95,23 @@ class ChatViewModel(application: Application, user: User , chatId: String) : And
     private val _uploadImageWorkerId = MutableLiveData<UUID>()
     val uploadImageWorkerId: LiveData<UUID> = _uploadImageWorkerId
 
+    val list = ArrayList<ChatDetails>()
 
 
-    init {
-        initChat()
-    }
+    // TODO: make chat status live data.
 
-    private fun initChat() {
-        _recipientU.value = recipient
-        if(chatID.isNotEmpty()){
-            observeLocalChat()
+//    init {
+//        observeLocalChat()
+//    }
+
+     fun initChat() {
+        if(chatId.value!!.isNotEmpty()){
             observeRemoteChat()
         }else{
             createNewChat()
         }
     }
+
 
 
     private fun getMessagesLiveData(result: Result<List<Message>?>?): LiveData<List<Message>> {
@@ -127,7 +133,7 @@ class ChatViewModel(application: Application, user: User , chatId: String) : And
 
     fun observeRemoteChat(){
         viewModelScope.launch {
-            messageRepository.observeMessagesOnRemoteByChatId(chatID){ messages ->
+            messageRepository.observeMessagesOnRemoteByChatId(chatId.value!!){ messages ->
                 if (_chatMessages.value != null){
                     refreshMessages(messages, _chatMessages.value!!)
                 }else{
@@ -139,12 +145,29 @@ class ChatViewModel(application: Application, user: User , chatId: String) : And
 
 
 
-    private fun observeLocalChat() {
-        _chatMessages = Transformations.switchMap(messageRepository.observeMessagesOnLocalByChatId(chatID)) {
+    fun observeLocalChat(chatId: String) {
+        _chatMessages = Transformations.switchMap(messageRepository.observeMessagesOnLocalByChatId(chatId)) {
             getMessagesLiveData(it)
         } as MutableLiveData<List<Message>>
     }
 
+
+    fun observeLocalMessages(){
+        _allMessages = Transformations.switchMap(messageRepository.observeMessage()) {
+            getMessagesLiveData(it)
+        } as MutableLiveData<List<Message>>
+    }
+
+
+    fun getLastMessage(chatId: String){
+        viewModelScope.launch {
+            val res = messageRepository.getLastMessage(chatId)
+            if (res is Success){
+                val lastMessage = res.data
+                Log.d(TAG,"lastMessage: ${lastMessage?.text}")
+            }
+        }
+    }
 
     fun removeAllMessages(){
         viewModelScope.launch {
@@ -165,14 +188,22 @@ class ChatViewModel(application: Application, user: User , chatId: String) : And
                 Log.d(TAG,"remote Messages: ${remoteMessages.size}")
                 Log.d(TAG,"local Messages: ${localMessages.size}")
                 val news = remoteMessages.findDiffElements(localMessages){it.messageId}
-                _newMessages.value = news
                 Log.d(TAG,"new Messages: ${news.size}")
+
+            if(news.isNotEmpty()){
+                _newMessages.value = news
                 messageRepository.insertMultipleMessages(news)
+                val lastMessage = news.last()
+                updateChat(lastMessage.chatId,lastMessage.date,lastMessage.text)
+
+            }
 
             viewModelScope.launch {
-                if(localMessages.size > remoteMessages.size){
+                if(localMessages.size > remoteMessages.size) {
                     val removed = localMessages.findDiffElements(remoteMessages){it.messageId}
                     messageRepository.deleteMultipleMessages(removed)
+                    val lastM = removed.last()
+                    updateChat(lastM.chatId,lastM.date,lastM.text)
                     Log.d(TAG,"removed Messages: ${removed.size}")
                 }
             }
@@ -184,8 +215,7 @@ class ChatViewModel(application: Application, user: User , chatId: String) : And
         viewModelScope.launch {
             val res = messageRepository.getMessagesByChatId(chatId)
             if (res is Success){
-                val messages = res.data
-                _chatMessages.value = messages
+
             }
         }
     }
@@ -205,11 +235,13 @@ class ChatViewModel(application: Application, user: User , chatId: String) : And
 
     private fun createNewChat(){
         viewModelScope.launch {
-            val newChatId = getChatId(userId!!,recipient.userId)
-            chatID = newChatId
-            observeLocalChat()
+            Log.d(TAG,"Getting new chat id:")
+            val currentUser = userRepository.getUser(userId!!)
+            val newChatId = getChatId(userId,recipientU.value!!.userId)
+            chatId.value = newChatId
+            observeLocalChat(newChatId)
             observeRemoteChat()
-            val chat = User.Chat(newChatId,userId,recipient.userId,Calendar.getInstance().time)
+            val chat = User.Chat(newChatId,userId,recipientU.value!!.userId,currentUser!!.name, recipientU.value!!.name,"")
             val res = async { userRepository.insertChat(chat) }
             res.await()
         }
@@ -220,23 +252,40 @@ class ChatViewModel(application: Application, user: User , chatId: String) : And
         viewModelScope.launch {
             val message: Message = when(type){
                 MessageType.TEXT-> {
-                    Message(getMessageId(userId!!,chatID), text, Date(), userId, recipient.userId, emptyList() , chatID,type.name)
+                    Message(getMessageId(userId!!,chatId.value!!), text, Date(), userId, recipientU.value!!.userId, emptyList() , chatId.value!!,type.name)
                 }
                 MessageType.IMAGE ->{
                     val resImg = async { messageRepository.insertImages(imgList) }
                     val imagesPaths = resImg.await()
-                    Message(getMessageId(userId!!,chatID), text, Date(), userId, recipient.userId, imagesPaths , chatID,type.name)
+                    Message(getMessageId(userId!!,chatId.value!!), text, Date(), userId, recipientU.value!!.userId, imagesPaths , chatId.value!!,type.name)
                 }
                 MessageType.TEXT_IMAGE->{
                     val resImg = async { messageRepository.insertImages(imgList) }
                     val imagesPaths = resImg.await()
-                    Message(getMessageId(userId!!,chatID), text, Date(), userId, recipient.userId, imagesPaths , chatID,type.name)
+                    Message(getMessageId(userId!!,chatId.value!!), text, Date(), userId, recipientU.value!!.userId, imagesPaths , chatId.value!!,type.name)
                 }
             }
             messageRepository.insertMessage(message)
+            updateChat(message.chatId,message.date,message.text)
         }
     }
 
+
+    private suspend fun updateChat(chatId: String,lastUpdate: Date,lastMessage: String){
+        val chats = userRepository.getUser(userId!!)?.chats
+        val chat = chats?.filter { it.chatId == chatId }?.toMutableList()?.get(0)
+        val new = chats?.toMutableList()
+        new?.remove(chat)
+        chat?.lastUpdate = lastUpdate
+        chat?.lastMessage = lastMessage
+        new?.add(chat!!)
+
+        if(new != null){
+            userRepository.updateChat(new)
+        }
+
+        Log.d(TAG,"current chat: ${chat?.chatId}")
+    }
 
 
 

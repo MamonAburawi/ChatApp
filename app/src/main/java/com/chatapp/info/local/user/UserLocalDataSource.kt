@@ -1,7 +1,12 @@
 package com.chatapp.info.local.user
 
 import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Transformations
+import com.chatapp.info.data.Message
 import com.chatapp.info.data.User
+import com.chatapp.info.utils.Result
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -45,6 +50,18 @@ class UserLocalDataSource internal constructor(
             userDao.insertMultiUsers(users)
         }
     }
+    override fun observeLocalUser(userId: String): LiveData<Result<User>?> {
+        return try {
+            Transformations.map(userDao.observeUser(userId)) {
+                Result.Success(it)
+            }
+        } catch (e: Exception) {
+            Transformations.map(MutableLiveData(e)) {
+                Result.Error(e)
+            }
+        }
+    }
+
 
     override suspend fun getUserById(userId: String): User? {
       return try {
@@ -57,15 +74,17 @@ class UserLocalDataSource internal constructor(
 
     }
 
-    override suspend fun getAllUsers(): List<User> {
+    override suspend fun getUsersData(): List<User>? {
+        Log.d(TAG,"users is getting")
         return try {
-            Log.d(TAG,"users is getting")
-            withContext(ioDispatcher){
-                userDao.getAllUsers()
-            }
+            userDao.getAllUsers()
         }catch (ex: Exception){
-            return emptyList()
+            emptyList()
         }
+    }
+
+    override suspend fun hardRefreshUsers(): Result<List<User>>{
+     return Result.Success(emptyList())
     }
 
     override suspend fun insertChat(chat: User.Chat) {
@@ -90,6 +109,7 @@ class UserLocalDataSource internal constructor(
             throw e
         }
     }
+
 
     suspend fun deleteChat(chat: User.Chat) {
         try {

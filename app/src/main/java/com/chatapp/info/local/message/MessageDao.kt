@@ -3,6 +3,7 @@ package com.chatapp.info.local.message
 import androidx.lifecycle.LiveData
 import androidx.room.*
 import com.chatapp.info.data.Message
+import com.chatapp.info.data.User
 
 @Dao
 interface MessageDao {
@@ -14,6 +15,9 @@ interface MessageDao {
 
     @Update
     suspend fun update(message: Message)
+
+    @Query("select * from messages where chatId = :chatId in (select max(messageId) from messages)")
+    suspend fun getLastMessage(chatId: String): Message?
 
     @Query("SELECT * FROM messages WHERE chatId = :chatId ")
     suspend fun getMessagesByChatId(chatId: String): List<Message>

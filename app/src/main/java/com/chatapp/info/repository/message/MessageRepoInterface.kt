@@ -24,6 +24,8 @@ interface MessageRepoInterface {
     suspend fun deleteAllMessagesByChatId(chatId: String){}
     suspend fun deleteAllMessages()
 
+    suspend fun getLastMessage(chatId: String): Result<Message?>
+
 
 
 }

@@ -1,12 +1,17 @@
 package com.chatapp.info.local.user
 
+import androidx.lifecycle.LiveData
 import androidx.room.*
 import com.chatapp.info.data.User
+import com.chatapp.info.utils.Result
 
 @Dao
 interface UserDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun addUser(user: User)
+
+    @Query("SELECT * FROM user WHERE userId = :userId")
+    fun observeUser(userId: String): LiveData<User>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMultiUsers(users: List<User>)
@@ -24,5 +29,5 @@ interface UserDao {
     suspend fun deleteUser()
 
     @Query("SELECT * FROM user")
-    suspend fun getAllUsers(): List<User>
+    suspend fun getAllUsers(): List<User>?
 }

@@ -11,7 +11,6 @@ import com.chatapp.info.databinding.ActivityLaunchBinding
 import com.chatapp.info.screens.users.UsersViewModel
 import com.chatapp.info.utils.ChatAppSessionManager
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.ktx.Firebase
 
 class LaunchActivity : AppCompatActivity() {
 
@@ -19,7 +18,6 @@ class LaunchActivity : AppCompatActivity() {
         const val ONE_SECOND = 1000L
         const val THREE_SECOND = 3000L
     }
-
     private val sessionManager by lazy { ChatAppSessionManager(this) }
 
     private lateinit var binding: ActivityLaunchBinding
@@ -48,7 +46,8 @@ class LaunchActivity : AppCompatActivity() {
     // todo make the users data live
 
     private fun initData(){
-        usersViewModel.value.hardRefreshData()
+        usersViewModel.value.hardRefreshUsesData()
+//        usersViewModel.value.hardRefreshData()
     }
 
 

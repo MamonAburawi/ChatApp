@@ -1,16 +1,16 @@
 package com.chatapp.info.repository.user
 
 import android.util.Log
+import androidx.lifecycle.LiveData
 import com.chatapp.info.data.User
 import com.chatapp.info.local.user.UserDataSource
 import com.chatapp.info.remote.UserRemoteDataSource
 import com.chatapp.info.utils.ChatAppSessionManager
+import com.chatapp.info.utils.Result
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.async
 import com.chatapp.info.utils.Result.Success
 import com.chatapp.info.utils.Result.Error
-
-import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.*
 
 
 class UserRepository(
@@ -24,7 +24,7 @@ class UserRepository(
     }
 
     private var firebaseAuth = FirebaseAuth.getInstance()
-    private val userId = sessionManager.getUserIdFromSession()
+//    private val userId = sessionManager.getUserIdFromSession()
 
 
     override suspend fun insertMultiUsers(users: List<User>) {
@@ -51,8 +51,8 @@ class UserRepository(
 
     override suspend fun signOut() {
 		sessionManager.logoutFromSession()
-		firebaseAuth.signOut()
 		userLocalDataSource.deleteAllUsers()
+        firebaseAuth.signOut()
     }
 
     override suspend fun deleteUser(userId: String) {
@@ -75,17 +75,27 @@ class UserRepository(
         }
     }
 
+
+    override fun observeLocalUser(userId: String): LiveData<Result<User>?> {
+        return userLocalDataSource.observeLocalUser(userId)
+    }
+
+
     override suspend fun getUser(userId: String): User? {
         return userLocalDataSource.getUserById(userId)
     }
 
-    override suspend fun hardRefreshData() {
-
-        Log.d(TAG,"HardRefreshData..")
-        val users = userRemoteDataSource.getAllUsers()
+    override suspend fun hardRefreshUsersData() {
+        val res = userRemoteDataSource.hardRefreshUsers()
+        if(res is Success){
+            Log.d(TAG,"Refreshing users to local..")
+            val users = res.data
+            Log.d(TAG,"users: ${users.size}")
+            userLocalDataSource.insertMultiUsers(users)
+        }
 //        userLocalDataSource.deleteAllUsers()
-        Log.d(TAG,"users: ${users.size}")
-        userLocalDataSource.insertMultiUsers(users)
+
+
 
 //        if (userId != null) {
 //            userLocalDataSource.deleteUserById(userId)
@@ -96,6 +106,18 @@ class UserRepository(
 //        }
 
     }
+
+    override suspend fun observeAndRefreshUser(userId: String) {
+        userRemoteDataSource.observeRemoteUser(userId){
+           runBlocking {
+               userLocalDataSource.updateUser(it)
+               sessionManager.update(it)
+               Log.d(TAG,"user is updated in local")
+           }
+        }
+    }
+
+
 
 //    override suspend fun insertChatId(chatId: String): Result<Boolean>{
 //        return supervisorScope {
@@ -118,6 +140,7 @@ class UserRepository(
 
     override suspend fun insertChat(chat: User.Chat) {
         return supervisorScope {
+
             val localRes = async {
                 Log.d(TAG, "onInsertChat: adding Chat to local source")
                 userLocalDataSource.insertChat(chat)
@@ -157,14 +180,30 @@ class UserRepository(
     }
 
 
+    override suspend fun updateChat(chat: List<User.Chat>) {
+        return supervisorScope {
+
+            val remoteRes = async {
+                Log.d(TAG, "onUpdateChat: updating Chat to remote source")
+                userRemoteDataSource.updateChat(chat)
+            }
+            try {
+                remoteRes.await()
+                Success(true)
+            } catch (e: Exception) {
+                Error(e)
+            }
+        }
+    }
+
+
     override fun isRememberMeOn(): Boolean {
         return sessionManager.isRememberMeOn()
     }
 
-    override suspend fun getAllUsers(): List<User> {
-        val users = userLocalDataSource.getAllUsers()
-        Log.d(TAG,"users in local: ${users.size}")
-        return  users
+
+    override suspend fun getAllUsers(): List<User>? {
+         return userLocalDataSource.getUsersData()
     }
 
 

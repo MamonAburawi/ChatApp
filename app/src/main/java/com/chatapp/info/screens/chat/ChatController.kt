@@ -110,66 +110,10 @@ class ChatController(val context: Context,val onClickListener: MessageClickListe
 
     }
 
-    // TODO: create two function one for sender user and another for recipient.
+
 
     class MessageClickListener(val clickListener: (message: Message) -> Unit) {
         fun onClick(message: Message) = clickListener(message)
     }
 
 }
-
-
-
-
-//package com.chatapp.info.screens.chat
-//
-//import android.content.Context
-//import androidx.core.os.bundleOf
-//import com.airbnb.epoxy.TypedEpoxyController
-//import com.chatapp.info.data.Message
-//import com.chatapp.info.data.User
-//import com.chatapp.info.recipientMessage
-//import com.chatapp.info.senderMessage
-//import com.chatapp.info.user
-//import com.chatapp.info.utils.ChatAppSessionManager
-//import com.chatapp.info.utils.KEY_MESSAGE
-//import com.chatapp.info.utils.KEY_RECIPIENT
-//import com.chatapp.info.utils.MessageType
-//
-//class ChatController(val context: Context,val onClickListener: MessageClickListener) : TypedEpoxyController<List<Message>>() {
-//
-//    private val sessionManager by lazy { ChatAppSessionManager(context) }
-//    private val userId = sessionManager.getUserIdFromSession()
-//
-//
-//    override fun buildModels(data: List<Message>?) {
-//        data?.forEachIndexed { index, message ->
-//
-//            if (message.senderId == userId){
-
-//                senderMessage {
-//                    id(message.messageId)
-//                    message(message)
-//                    clickListener { v ->
-//                        onClickListener.onClick(message)
-//                    }
-//                }
-//            }else{
-//                recipientMessage {
-//                    id(message.messageId)
-//                    message(message)
-//                    clickListener { v ->
-//                        onClickListener.onClick(message)
-//                    }
-//                }
-//            }
-//
-//        }
-//    }
-//
-//
-//    class MessageClickListener(val clickListener: (message: Message) -> Unit) {
-//        fun onClick(message: Message) = clickListener(message)
-//    }
-//
-//}

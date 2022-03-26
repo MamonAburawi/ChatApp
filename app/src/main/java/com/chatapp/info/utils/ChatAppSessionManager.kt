@@ -2,6 +2,8 @@ package com.chatapp.info.utils
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.chatapp.info.data.User
+
 
 class ChatAppSessionManager(context: Context) {
 
@@ -18,6 +20,11 @@ class ChatAppSessionManager(context: Context) {
 		editor.commit()
 	}
 
+	fun update(user: User){
+		editor.putString(KEY_ID, user.userId)
+		editor.putString(KEY_NAME, user.name)
+		editor.commit()
+	}
 
 
 	fun isRememberMeOn(): Boolean = userSession.getBoolean(KEY_REMEMBER_ME, false)

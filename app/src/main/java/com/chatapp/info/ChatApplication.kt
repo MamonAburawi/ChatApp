@@ -16,5 +16,6 @@ class ChatApplication(private val context: Context): Application() {
 
     override fun onCreate() {
         super.onCreate()
+
     }
 }

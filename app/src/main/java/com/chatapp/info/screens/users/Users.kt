@@ -18,12 +18,9 @@ import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
-import com.airbnb.epoxy.TypedEpoxyController
 import com.chatapp.info.R
 import com.chatapp.info.RegistrationActivity
-import com.chatapp.info.data.User
 import com.chatapp.info.databinding.UsersBinding
-import com.chatapp.info.user
 import com.chatapp.info.utils.KEY_RECIPIENT
 import com.chatapp.info.utils.MyOnFocusChangeListener
 import kotlinx.coroutines.*
@@ -45,6 +42,7 @@ class Users : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
 
 
+        // TODO: enhance the user item.
 
         binding = DataBindingUtil.inflate(inflater, R.layout.users,container,false)
 
@@ -73,7 +71,7 @@ class Users : Fragment() {
     override fun onResume() {
         super.onResume()
 
-        viewModel.getUser()
+//        viewModel.getCurrentUser()
     }
 
 

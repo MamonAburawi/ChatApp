@@ -39,7 +39,7 @@ class Chat: Fragment() {
 
     private val worker by lazy { WorkManager.getInstance(requireContext()) }
     private lateinit var binding : ChatBinding
-    private lateinit var viewModel: ChatViewModel
+    private val viewModel by activityViewModels<ChatViewModel>()
     private val usersViewModel by activityViewModels<UsersViewModel>()
     private lateinit var chatController : ChatController
     private var selectedUriList = ArrayList<Uri>()
@@ -118,10 +118,11 @@ class Chat: Fragment() {
     }
 
 
+
     override fun onResume() {
         super.onResume()
 
-        viewModel.observeRemoteChat()
+        viewModel.initChat()
     }
 
     override fun onPause() {
@@ -181,6 +182,15 @@ class Chat: Fragment() {
 
     private fun setObserves() {
 
+
+//        viewModel.allMessages.observe(viewLifecycleOwner){
+//            if (it != null){
+//
+//            }
+//
+//        }
+//
+
         /** live data messages **/
         viewModel.chatMessages.observe(viewLifecycleOwner){ chatMessages ->
 
@@ -189,7 +199,7 @@ class Chat: Fragment() {
                 scrollingToPosition(LAST_ITEM)
             }
 
-            if (chatMessages.isNotEmpty()){
+            if (chatMessages != null){
                 chatController.setData(chatMessages)
             }else{ // no messages
                 chatController.setData(emptyList())
@@ -271,10 +281,13 @@ class Chat: Fragment() {
         val currentUserChats = currentUser!!.chats
         val recipientUserChats = recipient.chats
         val chatId = findCommon(currentUserChats,recipientUserChats)
-//        viewModel.initChat(recipientData.userId)
+//        Log.d(TAG,"common chatId: $chatId")
+        viewModel.observeLocalChat(chatId)
 
-        viewModel = ViewModelProvider(this,ChatViewModelFactory(requireActivity().application,recipient,chatId))[ChatViewModel::class.java]
+        viewModel.recipientU.value = recipient
+        viewModel.chatId.value = chatId
         binding.chatViewModel = viewModel
+
         binding.lifecycleOwner = this@Chat
 
     }

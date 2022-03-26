@@ -70,6 +70,10 @@ class MessageRemoteDataSource(): MessageDataSource {
         }
     }
 
+    override suspend fun getLastMessage(chatId: String): Result<Message?> {
+        return Success(null)
+    }
+
     override suspend fun insertMessage(message: Message) {
         Log.d(TAG,"Inserting Message")
 //        chatCollection().add(message)

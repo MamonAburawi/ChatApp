@@ -14,6 +14,7 @@ const val KEY_MESSAGE = "Message"
 
 enum class StoreDataStatus { LOADING, ERROR, DONE }
 enum class MessageType {TEXT , IMAGE, TEXT_IMAGE}
+enum class ChatStatus {UPLOADING, UPDATING, OFFLINE}
 
 
 class MyOnFocusChangeListener : View.OnFocusChangeListener {

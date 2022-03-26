@@ -21,7 +21,7 @@
         tools:layout="@layout/chat"/>
     <fragment
         android:id="@+id/userChats"
-        android:name="com.chatapp.info.screens.user_chats.UserChats"
+        android:name="com.chatapp.info.screens.chats.Chats"
         android:label="UserChats"
         tools:layout="@layout/user_chats">
         <action

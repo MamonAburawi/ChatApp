@@ -61,6 +61,14 @@ class MessageLocalDataSource internal constructor(
         }
     }
 
+    override suspend fun getLastMessage(chatId: String): Result<Message?> = withContext(ioDispatcher) {
+        return@withContext try {
+            Success(messageDao.getLastMessage(chatId))
+        } catch (e: Exception) {
+            Error(e)
+        }
+    }
+
     override suspend fun insertMessage(message: Message) {
         withContext(ioDispatcher){
             messageDao.insert(message)
