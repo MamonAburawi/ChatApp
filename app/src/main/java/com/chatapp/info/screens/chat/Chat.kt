@@ -8,10 +8,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
+import android.widget.Toast
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.work.WorkManager
@@ -44,7 +44,9 @@ class Chat: Fragment() {
     private lateinit var chatController : ChatController
     private var selectedUriList = ArrayList<Uri>()
 
-
+    private lateinit var chatId: String
+    private lateinit var recipient: User
+//    private val recipient = arguments?.get(KEY_RECIPIENT) as User
 
     // TODO: create layout for send image & message.
 
@@ -53,8 +55,10 @@ class Chat: Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         binding = DataBindingUtil.inflate(inflater, R.layout.chat,container,false)
 
+        chatId = arguments?.get(KEY_CHAT_ID) as String
+        recipient = arguments?.get(KEY_RECIPIENT) as User
 
-
+        Toast.makeText(context,"recipient: ${recipient.name} \n chatId: $chatId",Toast.LENGTH_SHORT).show()
 
         initChat()
         setViews()
@@ -77,16 +81,16 @@ class Chat: Fragment() {
 
                 if (text != "" && selectedUriList.isEmpty()) { // message type text.
                     Log.d(TAG,"Send message type text")
-                    viewModel.sendMessage(text,MessageType.TEXT, emptyList())
+                    viewModel.sendMessage(text,chatId,recipient,MessageType.TEXT, emptyList())
                 }
                 if (text == "" && selectedUriList.isNotEmpty()) { // message type image.
                     Log.d(TAG,"Send message type image: ${selectedUriList[0]}")
 
-                    viewModel.sendMessage(text,MessageType.IMAGE, selectedUriList)
+                    viewModel.sendMessage(text,chatId,recipient,MessageType.IMAGE, selectedUriList)
                 }
                 if(text != "" && selectedUriList.isNotEmpty()){ // message type text & image
                     Log.d(TAG,"Send message type text & image")
-                    viewModel.sendMessage(text,MessageType.TEXT_IMAGE, selectedUriList)
+                    viewModel.sendMessage(text,chatId,recipient,MessageType.TEXT_IMAGE, selectedUriList)
                 }
 
                 selectedUriList.clear()
@@ -120,13 +124,13 @@ class Chat: Fragment() {
     override fun onResume() {
         super.onResume()
 
-        viewModel.initChat()
+//        viewModel.initChat()
     }
 
     override fun onPause() {
         super.onPause()
 
-        viewModel.observeRemoteChat()
+        viewModel.observeRemoteChat(chatId)
     }
 
     private fun setViews() {
@@ -274,16 +278,19 @@ class Chat: Fragment() {
 
 
     private fun initChat() {
-        val recipient =  arguments?.get(KEY_RECIPIENT) as User
-        val currentUser = usersViewModel.currentUser.value
-        val currentUserChats = currentUser!!.chats
-        val recipientUserChats = recipient.chats
-        val chatId = findCommon(currentUserChats,recipientUserChats)
+//        val recipient =  arguments?.get(KEY_RECIPIENT) as User
+//        val currentUser = usersViewModel.currentUser.value
+//        val currentUserChats = currentUser!!.chats
+//        val recipientUserChats = recipient.chats
+//        val chatId = findCommon(currentUserChats,recipientUserChats)
 //        Log.d(TAG,"common chatId: $chatId")
-        viewModel.observeLocalChat(chatId)
+        val chatId = arguments?.get(KEY_CHAT_ID) as String
+        viewModel.observeLocalMessages(chatId)
 
-        viewModel.recipientU.value = recipient
+//        viewModel.recipientU.value = recipient
         viewModel.chatId.value = chatId
+        viewModel.observeLocalMessages(chatId)
+        viewModel.observeRemoteChat(chatId)
         binding.chatViewModel = viewModel
 
         binding.lifecycleOwner = this@Chat

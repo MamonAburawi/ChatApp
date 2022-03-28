@@ -5,16 +5,17 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
+import androidx.core.os.bundleOf
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.fragment.findNavController
 
 import com.chatapp.info.R
-import com.chatapp.info.data.ChatDetails
 import com.chatapp.info.databinding.UserChatsBinding
 import com.chatapp.info.screens.chat.ChatViewModel
 import com.chatapp.info.screens.users.UsersViewModel
+import com.chatapp.info.utils.KEY_RECIPIENT
 
 
 class Chats : Fragment() {
@@ -28,7 +29,7 @@ class Chats : Fragment() {
     private val userViewModel by activityViewModels<UsersViewModel>()
     private val chatViewModel by activityViewModels<ChatViewModel>()
     private lateinit var viewModel: ChatsViewModel
-    val list = ArrayList<ChatDetails>()
+
 
     private lateinit var binding: UserChatsBinding
     private lateinit var chatsController: ChatsController
@@ -60,8 +61,9 @@ class Chats : Fragment() {
         binding.apply {
 
 
-            chatsController = ChatsController(requireContext(),ChatsController.ChatClickListener {
-                Toast.makeText(context,it.lastMessage,Toast.LENGTH_SHORT).show()
+            /** on chat clisk **/
+            chatsController = ChatsController(requireContext(),ChatsController.ChatClickListener { chat ->
+                viewModel.navigateToChat(chat.recipientId)
             })
 
             binding.recyclerViewChats.adapter = chatsController.adapter
@@ -72,17 +74,17 @@ class Chats : Fragment() {
 
     private fun setObservers() {
 
-        /** live data current user **/
-        viewModel.currentUser.observe(viewLifecycleOwner) { user ->
-            if (user != null){
-                val chats = user.chats
-                viewModel.initChats(chats)
-            }
-        }
-
+//        /** live data current user **/
+//        viewModel.currentUser.observe(viewLifecycleOwner) { user ->
+//            if (user != null){
+//                val chats = user.chats
+//                viewModel.initChats(chats)
+//            }
+//        }
+//
 
         /** live data chats **/
-        viewModel.chats.observe(viewLifecycleOwner){ chats ->
+        chatViewModel.chats.observe(viewLifecycleOwner){ chats ->
             if (chats != null){
                 chatsController.setData(chats)
             }else{
@@ -91,6 +93,15 @@ class Chats : Fragment() {
 
         }
 
+
+        /** live data navigate to chat **/
+        viewModel.navigateToChat.observe(viewLifecycleOwner){ recipient ->
+            if (recipient != null){
+                val data = bundleOf(KEY_RECIPIENT to recipient)
+                findNavController().navigate(R.id.action_userChats_to_chat,data)
+                viewModel.navigateToChatDone()
+            }
+        }
 
 
 

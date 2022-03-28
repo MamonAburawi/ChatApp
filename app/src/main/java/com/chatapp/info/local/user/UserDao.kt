@@ -13,6 +13,9 @@ interface UserDao {
     @Query("SELECT * FROM user WHERE userId = :userId")
     fun observeUser(userId: String): LiveData<User>
 
+    @Query("SELECT * FROM user")
+    fun observeUsers(): LiveData<List<User>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMultiUsers(users: List<User>)
 

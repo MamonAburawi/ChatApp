@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Transformations
+import com.chatapp.info.data.Chat
 import com.chatapp.info.data.Message
 import com.chatapp.info.data.User
 import com.chatapp.info.utils.Result
@@ -33,10 +34,15 @@ class UserLocalDataSource internal constructor(
         }
     }
 
+
     override suspend fun deleteAllUsers() {
         withContext(ioDispatcher){
             userDao.deleteUser()
         }
+    }
+
+    override suspend fun getUserChats(userId: String): Result<List<Chat>> {
+        return Result.Success(emptyList())
     }
 
     override suspend fun deleteUserById(userId: String) {
@@ -87,15 +93,27 @@ class UserLocalDataSource internal constructor(
      return Result.Success(emptyList())
     }
 
-    override suspend fun insertChat(chat: User.Chat) {
+    override  fun observeUsers(): LiveData<Result<List<User>?>> {
+        return try {
+            Transformations.map(userDao.observeUsers()) {
+                Result.Success(it)
+            }
+        } catch (e: Exception) {
+            Transformations.map(MutableLiveData(e)) {
+                Result.Error(e)
+            }
+        }
+    }
+
+    override suspend fun insertChat(chat: Chat) {
         try {
             val senderData = getUserById(chat.senderId)
             val recipientData = getUserById(chat.recipientId)
             if (senderData != null && recipientData != null) {
                 val senderChats = senderData.chats.toMutableList()
                 val recipientChats = recipientData.chats.toMutableList()
-                senderChats.add(chat)
-                recipientChats.add(chat)
+                senderChats.add(chat.chatId)
+                recipientChats.add(chat.chatId)
 
                 recipientData.chats = recipientChats
                 senderData.chats = senderChats
@@ -111,12 +129,12 @@ class UserLocalDataSource internal constructor(
     }
 
 
-    suspend fun deleteChat(chat: User.Chat) {
+    suspend fun deleteChat(chat: Chat) {
         try {
             val uData = getUserById(chat.senderId)
             if (uData != null) {
                 val chats = uData.chats.toMutableList()
-                chats.remove(chat)
+                chats.remove(chat.chatId)
                 uData.chats = chats
                 userDao.updateUser(uData)
             }else{

@@ -77,10 +77,15 @@ class LaunchActivity : AppCompatActivity() {
         super.onStart()
 
         if (FirebaseAuth.getInstance().currentUser != null){
-            initData()
-            initTime()
-        }else{
-            navigateToRegistration()
+            if (FirebaseAuth.getInstance().currentUser!!.isEmailVerified){
+                initData()
+                initTime()
+            }else{
+
+                navigateToRegistration()
+
+            }
+
         }
 
     }

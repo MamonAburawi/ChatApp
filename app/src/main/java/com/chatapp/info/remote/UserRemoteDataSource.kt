@@ -3,6 +3,7 @@ package com.chatapp.info.remote
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.chatapp.info.data.Chat
 import com.chatapp.info.data.Message
 import com.chatapp.info.data.User
 import com.chatapp.info.local.user.UserDataSource
@@ -16,8 +17,13 @@ import kotlinx.coroutines.tasks.await
 class UserRemoteDataSource(): UserDataSource {
 
     private val observableUser = MutableLiveData<Result<User>?>()
+    private val observableUsers = MutableLiveData<Result<List<User>?>>()
+
     private val _root = FirebaseFirestore.getInstance()
     private fun usersCollection() = _root.collection(USERS_COLLECTION)
+
+    private fun chatCollection(userId: String) = usersCollection().document(userId)
+        .collection(CHAT_COLLECTION)
 
 
     override suspend fun addUser(user: User) {
@@ -25,7 +31,7 @@ class UserRemoteDataSource(): UserDataSource {
             .addOnSuccessListener {
                 Log.d(TAG,"user is added")
             }
-            .addOnFailureListener {error ->
+            .addOnFailureListener { error ->
                 Log.d(TAG, "firebase fire store error occurred: ${error.message}")
             }
     }
@@ -42,6 +48,42 @@ class UserRemoteDataSource(): UserDataSource {
 
     override suspend fun deleteAllUsers() {
 
+    }
+
+    override suspend fun getUserChats(userId: String): Result<List<Chat>> {
+        return try {
+            val ref = chatCollection(userId).get().await()
+            val chats = ref.toObjects(Chat::class.java)
+            Result.Success(chats)
+        }catch (ex: Exception){
+            Result.Error(ex)
+        }
+
+    }
+
+    override suspend fun observeUserChatsIds(userId: String, ChatsIds: (List<Chat>) -> Unit) {
+        chatCollection(userId).addSnapshotListener { value, error ->
+            if (error == null){
+                if (value != null){
+                    val chats = value.toObjects(Chat::class.java)
+                    ChatsIds(chats)
+                }
+            }
+        }
+    }
+
+    override suspend fun refreshUsersByIds(ids: List<String>) {
+        ids.forEach { userId ->
+            val ref = usersCollection().document(userId).get().await()
+            val user = ref.toObject(User::class.java)
+            if (user != null) {
+                updateUser(user)
+            }
+        }
+    }
+
+    override  fun observeUsers(): LiveData<Result<List<User>?>> {
+        return observableUsers
     }
 
     override suspend fun deleteUserById(userId: String) {
@@ -74,60 +116,53 @@ class UserRemoteDataSource(): UserDataSource {
         return emptyList()
     }
 
-    override suspend fun insertChat(chat: User.Chat) {
-        val senderRef = usersCollection().whereEqualTo(USER_ID_FIELD, chat.senderId).get().await()
-        if (!senderRef.isEmpty) {
-            val docId = senderRef.documents[0].id
-            usersCollection().document(docId)
-                .update(CHATS, FieldValue.arrayUnion(chat))
+//    override suspend fun insertChat(chat: Chat) {
+////        TODO("Not yet implemented")
+//    override suspend fun insertChat(chat: Chat) {
+//    }
 
-        }
+//        val senderRef = usersCollection().whereEqualTo(USER_ID_FIELD, chat.senderId).get().await()
+//        if (!senderRef.isEmpty) {
+//            val docId = senderRef.documents[0].id
+//            val ref = usersCollection().document(docId).get().await()
+//            val user = ref.toObject(User::class.java)
+//            if(!user?.chats!!.contains(chat)){
+//                usersCollection().document(docId)
+//                    .update(CHATS, FieldValue.arrayUnion(chat))
+//            }
+//        }
+//
+//        val recipientRef = usersCollection().whereEqualTo(USER_ID_FIELD, chat.recipientId).get().await()
+//        if (!recipientRef.isEmpty) {
+//            val docId = recipientRef.documents[0].id
+//            val ref = usersCollection().document(docId).get().await()
+//            val user = ref.toObject(User::class.java)
+//            if(!user?.chats!!.contains(chat)){
+//                usersCollection().document(docId)
+//                    .update(CHATS, FieldValue.arrayUnion(chat))
+//            }
+//
+//        }
+//    }
 
-        val recipientRef = usersCollection().whereEqualTo(USER_ID_FIELD, chat.recipientId).get().await()
-        if (!recipientRef.isEmpty) {
-            val docId = recipientRef.documents[0].id
-            usersCollection().document(docId)
-                .update(CHATS, FieldValue.arrayUnion(chat))
+//    override suspend fun deleteChat(chat: User.Chat,forBoth: Boolean) {
+//        val userRef = usersCollection().whereEqualTo(USER_ID_FIELD, chat.senderId).get().await()
+//        if (!userRef.isEmpty) {
+//            val docId = userRef.documents[0].id
+//            usersCollection().document(docId)
+//                .update(CHATS, FieldValue.arrayRemove(chat))
+//        }
+//        if (forBoth){
+//            val recipientRef = usersCollection().whereEqualTo(USER_ID_FIELD, chat.recipientId).get().await()
+//            if (!recipientRef.isEmpty) {
+//                val docId = recipientRef.documents[0].id
+//                usersCollection().document(docId)
+//                    .update(CHATS, FieldValue.arrayRemove(chat))
+//            }
+//
+//        }
+//    }
 
-        }
-    }
-
-    override suspend fun deleteChat(chat: User.Chat,forBoth: Boolean) {
-        val userRef = usersCollection().whereEqualTo(USER_ID_FIELD, chat.senderId).get().await()
-        if (!userRef.isEmpty) {
-            val docId = userRef.documents[0].id
-            usersCollection().document(docId)
-                .update(CHATS, FieldValue.arrayRemove(chat))
-        }
-        if (forBoth){
-            val recipientRef = usersCollection().whereEqualTo(USER_ID_FIELD, chat.recipientId).get().await()
-            if (!recipientRef.isEmpty) {
-                val docId = recipientRef.documents[0].id
-                usersCollection().document(docId)
-                    .update(CHATS, FieldValue.arrayRemove(chat))
-            }
-
-        }
-    }
-
-    override suspend fun updateChat(chat: List<User.Chat>) {
-        val senderRef = usersCollection().whereEqualTo(USER_ID_FIELD, chat[0].senderId).get().await()
-        if (!senderRef.isEmpty) {
-            val docId = senderRef.documents[0].id
-            usersCollection().document(docId)
-                .update(CHATS, chat)
-
-        }
-
-        val recipientRef = usersCollection().whereEqualTo(USER_ID_FIELD, chat[0].recipientId).get().await()
-        if (!recipientRef.isEmpty) {
-            val docId = recipientRef.documents[0].id
-
-            usersCollection().document(docId)
-                .update(CHATS, chat)
-
-        }
-    }
 
     override fun observeLocalUser(userId: String): LiveData<Result<User>?> {
         return observableUser
@@ -185,6 +220,7 @@ class UserRemoteDataSource(): UserDataSource {
 
         private const val USERS_COLLECTION = "users"
         private const val USER_ID_FIELD = "userId"
+        private const val CHAT_COLLECTION = "chats"
         private const val EMAIL_FIELD = "email"
         private const val PHONE_FIELD = "phone"
         private const val PASSWORD_FIELD = "password"

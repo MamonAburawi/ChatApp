@@ -20,7 +20,9 @@ import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.chatapp.info.R
 import com.chatapp.info.RegistrationActivity
+import com.chatapp.info.data.User
 import com.chatapp.info.databinding.UsersBinding
+import com.chatapp.info.utils.KEY_CHAT_ID
 import com.chatapp.info.utils.KEY_RECIPIENT
 import com.chatapp.info.utils.MyOnFocusChangeListener
 import kotlinx.coroutines.*
@@ -35,6 +37,8 @@ class Users : Fragment() {
     private val focusChangeListener = MyOnFocusChangeListener()
     private lateinit var userController: UserController
 
+
+    var recipientData: User? = null
 
 //    private var list = ArrayList<User>()
 
@@ -54,14 +58,6 @@ class Users : Fragment() {
         setObserves()
 
 
-        // TODO: update the search bar design.
-        // TODO: set the functionality for search bar.
-
-
-        binding.apply {
-
-
-        }
 
 
 
@@ -79,14 +75,13 @@ class Users : Fragment() {
 
         binding.apply {
 
-            /** onUserClick **/
-            userController = UserController(UserController.UserClickListener { user ->
-                val data = bundleOf(KEY_RECIPIENT to user)
-                findNavController().navigate(R.id.action_users_to_chat,data)
+            /** on user click **/
+            userController = UserController(UserController.UserClickListener { recipient ->
+                recipientData = recipient
+                viewModel.navigateToChat(recipient)
             })
 
             recyclerViewUsers.adapter = userController.adapter
-            userController.setData(emptyList())
 
         }
 
@@ -95,27 +90,27 @@ class Users : Fragment() {
     private fun setObserves(){
 
 
-        /** live data users **/
-        viewModel.users.observe(viewLifecycleOwner){ users ->
-            if (users != null){
-                Toast.makeText(requireContext(),"users: ${users.size}",Toast.LENGTH_SHORT).show()
 
-                userController.setData(users)
+        // todo fix the bundle issue.
 
+        /** live data navigate to chat **/
+        viewModel.navigateToChat.observe(viewLifecycleOwner){ chatId ->
+            if (chatId.isNotEmpty()){
+//                Toast.makeText(context,"chatId: $chatId",Toast.LENGTH_SHORT).show()
+//                Toast.makeText(context,"recpientName: ${recipientData?.name}",Toast.LENGTH_SHORT).show()
 
+                val data = bundleOf(KEY_CHAT_ID to chatId , KEY_RECIPIENT to recipientData)
+                findNavController().navigate(R.id.action_users_to_chat,data)
+                viewModel.navigateToChatDone()
             }
         }
 
 
+        /** live data users **/
+        viewModel.users.observe(viewLifecycleOwner){ users ->
+            if (users != null){
+                userController.setData(users)
 
-        /** live data sign out **/
-        viewModel.signOut.observe(viewLifecycleOwner){
-            if(it != null){
-                if(it){
-                    val intent = Intent(activity, RegistrationActivity::class.java)
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                    startActivity(intent)
-                }
             }
         }
 
@@ -176,9 +171,7 @@ class Users : Fragment() {
         popupMenu.menuInflater.inflate(R.menu.main_menu,popupMenu.menu)
         popupMenu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
-                R.id.itemSignOut -> {
-                    viewModel.signOut()
-                }
+
             }
             true
         }

@@ -1,18 +1,13 @@
 package com.chatapp.info.screens.chats
 
 import android.content.Context
-import android.net.Uri
-import android.util.Log
-import androidx.core.net.toUri
 import com.airbnb.epoxy.TypedEpoxyController
 import com.chatapp.info.*
-import com.chatapp.info.data.ChatDetails
-import com.chatapp.info.data.Message
+import com.chatapp.info.data.Chat
 import com.chatapp.info.data.User
 import com.chatapp.info.utils.ChatAppSessionManager
-import com.chatapp.info.utils.MessageType
 
-class ChatsController(val context: Context, val onClickListener: ChatClickListener) : TypedEpoxyController<List<User.Chat>>() {
+class ChatsController(val context: Context, val onClickListener: ChatClickListener) : TypedEpoxyController<List<Chat>>() {
 
     companion object{
         private const val TAG = "ChatsController"
@@ -22,7 +17,7 @@ class ChatsController(val context: Context, val onClickListener: ChatClickListen
     private val userId = sessionManager.getUserIdFromSession()
 
 
-    override fun buildModels(data: List<User.Chat>?) {
+    override fun buildModels(data: List<Chat>?) {
         data?.forEachIndexed { index, chat ->
 
             chat {
@@ -37,8 +32,8 @@ class ChatsController(val context: Context, val onClickListener: ChatClickListen
 
 
 
-    class ChatClickListener(val clickListener: (User.Chat) -> Unit) {
-        fun onClick(chat: User.Chat) = clickListener(chat)
+    class ChatClickListener(val clickListener: (Chat) -> Unit) {
+        fun onClick(chat: Chat) = clickListener(chat)
     }
 
 }

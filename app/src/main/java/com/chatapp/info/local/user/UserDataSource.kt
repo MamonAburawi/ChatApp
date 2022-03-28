@@ -1,6 +1,7 @@
 package com.chatapp.info.local.user
 
 import androidx.lifecycle.LiveData
+import com.chatapp.info.data.Chat
 import com.chatapp.info.data.User
 import com.chatapp.info.utils.Result
 
@@ -12,19 +13,26 @@ interface UserDataSource {
 
     suspend fun deleteAllUsers()
 
+    suspend fun getUserChats(userId: String): Result<List<Chat>>
+
     suspend fun deleteUserById(userId: String)
 
     suspend fun getUserById (userId: String): User?
 
     suspend fun hardRefreshUsers(): Result<List<User>>
 
+    suspend fun refreshUsersByIds(ids: List<String>){}
+
+    suspend fun observeUserChatsIds(userId: String, ChatsIds:(List<Chat>) -> Unit){}
+
+    fun observeUsers(): LiveData<Result<List<User>?>>
+
     suspend fun getUsersData(): List<User>?
 
-    suspend fun insertChat(chat: User.Chat)
-
-    suspend fun deleteChat(chat: User.Chat,forBoth: Boolean = false){}
-
-    suspend fun updateChat(chat: List<User.Chat>){}
+    suspend fun insertChat(chat: Chat){}
+//
+    suspend fun deleteChat(chat: Chat,forBoth: Boolean = false){}
+//
 
     suspend fun insertMultiUsers(users: List<User>){}
 

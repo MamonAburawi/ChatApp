@@ -80,7 +80,6 @@
                         android:layout_gravity="center"
                         android:layout_weight="1"
                         android:padding="2dp"
-                        android:text="@{chatViewModel.recipientU.name}"
                         android:textColor="@color/colorWhite"
                         android:textSize="20sp"
                         android:textStyle="bold"

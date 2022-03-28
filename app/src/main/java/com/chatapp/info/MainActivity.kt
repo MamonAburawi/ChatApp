@@ -18,27 +18,28 @@ class MainActivity : AppCompatActivity() {
     private val chatViewModel by viewModels<ChatViewModel>()
 
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         binding =  DataBindingUtil.setContentView(this,R.layout.activity_main)
 
-
         initData()
         setUpNav()
 
-
+        // todo create account fragment
+        // todo create settings fragment
+        // todo import the notification system
     }
 
     private fun initData(){
-//        usersViewModel.getCurrentUser()
-        usersViewModel.getLocalUsers()
-//        usersViewModel.observeLocalUser()
+//        usersViewModel.getLocalUsers()
+        usersViewModel.observeLocalUsers()
         usersViewModel.observeRemoteUser()
+
+        usersViewModel.observeRemoteChatsIds()
+
         chatViewModel.observeLocalMessages()
-
-
+//        chatViewModel.observeLocalChats()
     }
 
     private fun setUpNav() {
@@ -49,6 +50,7 @@ class MainActivity : AppCompatActivity() {
             when (destination.id) {
                 R.id.users -> setBottomNavVisibility(View.VISIBLE)
                 R.id.userChats -> setBottomNavVisibility(View.VISIBLE)
+                R.id.account -> setBottomNavVisibility(View.VISIBLE)
                 else -> setBottomNavVisibility(View.GONE)
             }
         }
@@ -60,5 +62,6 @@ class MainActivity : AppCompatActivity() {
     private fun setBottomNavVisibility(visibility: Int) {
         binding.homeBottomNavigation.visibility = visibility
     }
+
 
 }

@@ -28,4 +28,9 @@
             android:id="@+id/action_userChats_to_chat"
             app:destination="@id/chat" />
     </fragment>
+    <fragment
+        android:id="@+id/account"
+        android:name="com.chatapp.info.screens.account.Account"
+        android:label="Account"
+        tools:layout="@layout/account"/>
 </navigation>

@@ -2,6 +2,7 @@ package com.chatapp.info.local.message
 
 import android.net.Uri
 import androidx.lifecycle.LiveData
+import com.chatapp.info.data.Chat
 import com.chatapp.info.data.Message
 import com.chatapp.info.data.User
 import com.chatapp.info.utils.Result
@@ -26,7 +27,7 @@ interface MessageDataSource {
 
     suspend fun updateMessage(message: Message)
 
-    suspend fun getAllChatsByUserId(userId: String): Result<List<User.Chat>> {
+    suspend fun getAllChatsByUserId(userId: String): Result<List<Chat>> {
         return Success(emptyList())
     }
 

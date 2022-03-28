@@ -2,6 +2,7 @@ package com.chatapp.info.repository.user
 
 import android.util.Log
 import androidx.lifecycle.LiveData
+import com.chatapp.info.data.Chat
 import com.chatapp.info.data.User
 import com.chatapp.info.local.user.UserDataSource
 import com.chatapp.info.remote.UserRemoteDataSource
@@ -19,18 +20,17 @@ class UserRepository(
     private val sessionManager: ChatAppSessionManager
 ) : UserRepoInterface {
 
+    private val userId = sessionManager.getUserIdFromSession()
+
     companion object {
         private const val TAG = "UserRepository"
     }
 
     private var firebaseAuth = FirebaseAuth.getInstance()
-//    private val userId = sessionManager.getUserIdFromSession()
-
 
     override suspend fun insertMultiUsers(users: List<User>) {
         userLocalDataSource.insertMultiUsers(users)
     }
-
 
     override suspend fun signUp(user: User) {
         sessionManager.createLoginSession(user.userId, user.name, false)
@@ -39,6 +39,18 @@ class UserRepository(
         Log.d(TAG, "on SignUp: Updating userdata on Remote Source")
         userRemoteDataSource.addUser(user)
     }
+
+
+    override suspend fun observeUserChatsIds(userId: String, ChatsIds: (List<Chat>) -> Unit) {
+
+        userRemoteDataSource.observeUserChatsIds(userId, ChatsIds)
+//        val user = userLocalDataSource.getUserById(userId)
+//        val chats = user?.ChatsIds?.toMutableSet()
+//        user?.chats = chats!!.toList()
+//
+//        userRemoteDataSource.updateUser(user)
+    }
+
 
     override suspend fun login(user: User, rememberMe: Boolean) {
         sessionManager.createLoginSession(
@@ -49,11 +61,37 @@ class UserRepository(
         userLocalDataSource.addUser(user)
     }
 
+
+
     override suspend fun signOut() {
 		sessionManager.logoutFromSession()
 		userLocalDataSource.deleteAllUsers()
+
         firebaseAuth.signOut()
     }
+
+    override suspend fun getUserChats(userId: String): Result<List<Chat>> {
+      return userRemoteDataSource.getUserChats(userId)
+    }
+
+    override suspend fun updateUser(user: User) {
+        return supervisorScope {
+            val remoteRes = async {
+              userRemoteDataSource.updateUser(user)
+            }
+            val localRes = async {
+              userLocalDataSource.updateUser(user)
+            }
+            try {
+                remoteRes.await()
+                localRes.await()
+                Success(true)
+            } catch (e: Exception) {
+                Error(e)
+            }
+        }
+    }
+
 
     override suspend fun deleteUser(userId: String) {
         return supervisorScope {
@@ -80,6 +118,10 @@ class UserRepository(
         return userLocalDataSource.observeLocalUser(userId)
     }
 
+    override fun observeUsers(): LiveData<Result<List<User>?>> {
+        return userLocalDataSource.observeUsers()
+    }
+
 
     override suspend fun getUser(userId: String): User? {
         return userLocalDataSource.getUserById(userId)
@@ -93,19 +135,8 @@ class UserRepository(
             Log.d(TAG,"users: ${users.size}")
             userLocalDataSource.insertMultiUsers(users)
         }
-//        userLocalDataSource.deleteAllUsers()
-
-
-
-//        if (userId != null) {
-//            userLocalDataSource.deleteUserById(userId)
-//            val user = userRemoteDataSource.getUserById(userId)
-//            if (user != null){
-//                userLocalDataSource.addUser(user)
-//            }
-//        }
-
     }
+
 
     override suspend fun observeAndRefreshUser(userId: String) {
         userRemoteDataSource.observeRemoteUser(userId){
@@ -118,15 +149,16 @@ class UserRepository(
     }
 
 
-
-//    override suspend fun insertChatId(chatId: String): Result<Boolean>{
+//    override suspend fun insertChat(chat: User.Chat) {
 //        return supervisorScope {
+//
 //            val localRes = async {
-//                Log.d(TAG, "onInsertChatId: adding ChatId to local source")
-//                userLocalDataSource.insertChatId(userId!!,chatId)
+//                Log.d(TAG, "onInsertChat: adding Chat to local source")
+//                userLocalDataSource.i
 //            }
 //            val remoteRes = async {
-//                userRemoteDataSource.insertChatId(userId!!,chatId)
+//                Log.d(TAG, "onInsertChat: adding Chat to remote source")
+//                userRemoteDataSource.insertChat(chat)
 //            }
 //            try {
 //                localRes.await()
@@ -137,64 +169,45 @@ class UserRepository(
 //            }
 //        }
 //    }
-
-    override suspend fun insertChat(chat: User.Chat) {
-        return supervisorScope {
-
-            val localRes = async {
-                Log.d(TAG, "onInsertChat: adding Chat to local source")
-                userLocalDataSource.insertChat(chat)
-            }
-            val remoteRes = async {
-                Log.d(TAG, "onInsertChat: adding Chat to remote source")
-                userRemoteDataSource.insertChat(chat)
-            }
-            try {
-                localRes.await()
-                remoteRes.await()
-                Success(true)
-            } catch (e: Exception) {
-                Error(e)
-            }
-        }
-    }
-
-    override suspend fun deleteChat(chat: User.Chat) {
-        return supervisorScope {
-            val localRes = async {
-                Log.d(TAG, "onDeleteChat: deleting Chat from local source")
-                userLocalDataSource.deleteChat(chat)
-            }
-            val remoteRes = async {
-                Log.d(TAG, "onDeleteChat: deleting Chat from remote source")
-                userRemoteDataSource.deleteChat(chat)
-            }
-            try {
-                localRes.await()
-                remoteRes.await()
-                Success(true)
-            } catch (e: Exception) {
-                Error(e)
-            }
-        }
-    }
-
-
-    override suspend fun updateChat(chat: List<User.Chat>) {
-        return supervisorScope {
-
-            val remoteRes = async {
-                Log.d(TAG, "onUpdateChat: updating Chat to remote source")
-                userRemoteDataSource.updateChat(chat)
-            }
-            try {
-                remoteRes.await()
-                Success(true)
-            } catch (e: Exception) {
-                Error(e)
-            }
-        }
-    }
+//
+//    override suspend fun deleteChat(chat: User.Chat) {
+//        return supervisorScope {
+//            val localRes = async {
+//                Log.d(TAG, "onDeleteChat: deleting Chat from local source")
+//                userLocalDataSource.deleteChat(chat)
+//            }
+//            val remoteRes = async {
+//                Log.d(TAG, "onDeleteChat: deleting Chat from remote source")
+//                userRemoteDataSource.deleteChat(chat)
+//            }
+//            try {
+//                localRes.await()
+//                remoteRes.await()
+//                Success(true)
+//            } catch (e: Exception) {
+//                Error(e)
+//            }
+//        }
+//    }
+//
+//
+//    override suspend fun updateChat(chat: List<User.Chat>) {
+//        return supervisorScope {
+//
+//
+//
+//            val remoteRes = async {
+//                Log.d(TAG, "onUpdateChat: updating Chat to remote source")
+//                userRemoteDataSource.updateChat(chat)
+//            }
+//            try {
+//                remoteRes.await()
+//                Success(true)
+//            } catch (e: Exception) {
+//                Error(e)
+//            }
+//        }
+//    }
 
 
     override fun isRememberMeOn(): Boolean {

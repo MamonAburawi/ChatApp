@@ -4,13 +4,14 @@ package com.chatapp.info.utils
 import android.content.Context
 import android.view.View
 import android.view.inputmethod.InputMethodManager
-import com.chatapp.info.data.User
+import com.chatapp.info.data.Chat
 import java.util.*
 
 const val ERR_UPLOAD = "UploadErrorException"
 
 const val KEY_RECIPIENT = "Recipient"
 const val KEY_MESSAGE = "Message"
+const val KEY_CHAT_ID = "ChatID"
 
 enum class StoreDataStatus { LOADING, ERROR, DONE }
 enum class MessageType {TEXT , IMAGE, TEXT_IMAGE}
@@ -53,18 +54,17 @@ fun <T,R> Collection<T>.findDiffElements(elements: Collection<T>,selector:(T)->R
 
 
 
-fun findCommon(first: List<User.Chat>, second: List<User.Chat>): String{
-    var chatId = ""
+fun findCommon(first: List<Chat>, second: List<Chat>): Chat{
+    var c = Chat()
     first.forEach { chat ->
         second.forEach { chat2 ->
             if (chat.chatId == chat2.chatId){
-                chatId = chat.chatId
+                c = chat
             }
         }
     }
-  return chatId
+    return c
 }
-
 
 
 

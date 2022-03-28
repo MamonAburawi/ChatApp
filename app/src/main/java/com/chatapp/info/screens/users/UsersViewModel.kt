@@ -4,21 +4,23 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.*
 import com.chatapp.info.ChatApplication
+import com.chatapp.info.data.Chat
 import com.chatapp.info.data.User
 import com.chatapp.info.screens.chat.ChatViewModel
-import com.chatapp.info.utils.ChatAppSessionManager
-import com.chatapp.info.utils.Result
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
+import com.chatapp.info.utils.*
 import kotlinx.coroutines.*
 
 class UsersViewModel(application: Application) : AndroidViewModel(application) {
 
+    companion object{
+        const val TAG = "UsersViewModel"
+    }
 
     private val sessionManager by lazy { ChatAppSessionManager(application) }
     private val chatApplication by lazy { ChatApplication(application) }
 
     private val userRepository by lazy { chatApplication.userRepository }
+    private val chatRepository by lazy { chatApplication.chatRepository }
 
     private val userId = sessionManager.getUserIdFromSession()
 
@@ -29,11 +31,13 @@ class UsersViewModel(application: Application) : AndroidViewModel(application) {
     private val scopeIO = CoroutineScope(Dispatchers.IO + Job())
     private val scopeMain = CoroutineScope(Dispatchers.Main + Job())
 
-    private val _users = MutableLiveData<List<User>?>()
-    val users: LiveData<List<User>?> = _users
+    private var _users = MutableLiveData<List<User>?>()
+    val users: LiveData<List<User>?> get() = _users
 
-    private val _signOut = MutableLiveData<Boolean?>()
-    val signOut: LiveData<Boolean?> = _signOut
+
+    private val _navigateToChat = MutableLiveData<String>()
+    val navigateToChat: LiveData<String> = _navigateToChat
+
 
 
 
@@ -43,10 +47,87 @@ class UsersViewModel(application: Application) : AndroidViewModel(application) {
 
 
     init {
-        _signOut.value = false
+//        _signOut.value = false
 //        getCurrentUser()
     }
 
+
+    fun navigateToChat(recipient: User){
+        viewModelScope.launch {
+            val resSenderChats = userRepository.getUserChats(userId!!)
+            val resRecipientChats = userRepository.getUserChats(recipient.userId)
+            if(resSenderChats is Result.Success){
+                if(resRecipientChats is Result.Success){
+                    val recipientChats = resRecipientChats.data
+                    val remoteChats = resSenderChats.data
+
+
+                    Log.d(TAG,"sender chats: ${remoteChats?.size}")
+                    Log.d(TAG,"recipient chats: ${recipientChats.size}")
+
+
+                    val chat = findCommon(remoteChats,recipientChats)
+                    Log.d(TAG,"common chatId: $chat")
+
+                if (chat.chatId.isNotEmpty()){
+                    _navigateToChat.value = chat.chatId
+                    Log.d(TAG,"old chat ID: ${chat}")
+                }else{
+                    val newChatId = getChatId(userId, recipient.userId )
+                    _navigateToChat.value = newChatId
+                    Log.d(TAG,"new chat Id: $newChatId")
+
+                    val c = Chat(newChatId,userId,recipient.userId,chat.senderName, recipient.name,"")
+                    val resChat = async { chatRepository.insertChat(c) }
+                    resChat.await()
+
+                }
+
+                }
+
+
+            }
+        }
+    }
+
+
+    fun observeRemoteChatsIds(){
+        viewModelScope.launch {
+            userRepository.observeUserChatsIds(userId!!){ chats ->
+                viewModelScope.launch {
+                    val res =  chatRepository.getChats(userId)
+
+                    if(res is Result.Success){
+                        val c = res.data?.toMutableSet()
+                        val news = chats.findDiffElements(c!!){it.chatId}
+
+                        if (news.isNotEmpty()){
+                            Log.d(TAG,"this new chats inserted in local ${news.size} ${news[0].chatId}")
+                            chatRepository.insertMultipleChats(news)
+                        }
+
+                    }
+
+
+                }
+            }
+        }
+    }
+
+
+
+
+    private fun updateUser(user: User){
+        viewModelScope.launch {
+            val res = async { userRepository.updateUser(user) }
+            res.await()
+
+        }
+    }
+
+    fun navigateToChatDone(){
+        _navigateToChat.value = ""
+    }
 
 
     fun observeLocalUser(){
@@ -61,6 +142,38 @@ class UsersViewModel(application: Application) : AndroidViewModel(application) {
         if (result is Result.Success) {
             Log.d(ChatViewModel.TAG, "result is success")
             res.value = result.data
+        } else {
+            Log.d(ChatViewModel.TAG, "result is not success")
+            if (result is Result.Error)
+                Log.d(ChatViewModel.TAG, "getMessagesLiveData: Error Occurred: $result")
+        }
+        return res
+    }
+
+
+
+    fun observeLocalUsers(){
+        _users = Transformations.switchMap(userRepository.observeUsers()) {
+            getUsersLiveData(it!!)
+        } as MutableLiveData<List<User>?>
+    }
+
+
+    private fun getUsersLiveData(result: Result<List<User>?>): LiveData<List<User>?> {
+        val res = MutableLiveData<List<User>?>()
+        if (result is Result.Success) {
+            Log.d(ChatViewModel.TAG, "result is success")
+            val allUsers = result.data
+
+            // remove current user
+            if (allUsers != null){
+                val currentUser = allUsers.filter { it.userId == userId }.get(0)
+                val list = allUsers.toMutableList()
+                list.remove(currentUser)
+
+                res.value = list.toList()
+            }
+
         } else {
             Log.d(ChatViewModel.TAG, "result is not success")
             if (result is Result.Error)
@@ -129,15 +242,15 @@ class UsersViewModel(application: Application) : AndroidViewModel(application) {
 
 
 
-    fun signOut(){
-        scopeIO.launch {
-            userRepository.signOut()
-//            _auth.signOut()
-            withContext(Dispatchers.Main){
-                _signOut.value = true
-            }
-        }
-    }
+//    fun signOut(){
+//        scopeIO.launch {
+//            userRepository.signOut()
+////            _auth.signOut()
+//            withContext(Dispatchers.Main){
+//                _signOut.value = true
+//            }
+//        }
+//    }
 
 
     override fun onCleared() {
