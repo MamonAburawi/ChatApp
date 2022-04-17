@@ -1,4 +1,4 @@
-package com.chatapp.info.local.user
+package com.chatapp.info.local.api
 
 import androidx.lifecycle.LiveData
 import androidx.room.*
@@ -6,7 +6,7 @@ import com.chatapp.info.data.User
 import com.chatapp.info.utils.Result
 
 @Dao
-interface UserDao {
+interface UserApi {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun addUser(user: User)
 

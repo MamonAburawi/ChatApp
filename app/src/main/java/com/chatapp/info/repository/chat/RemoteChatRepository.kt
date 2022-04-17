@@ -1,22 +1,20 @@
-package com.chatapp.info.remote
+package com.chatapp.info.repository.chat
 
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.chatapp.info.data.Chat
-import com.chatapp.info.local.chat.ChatDataSource
 import com.chatapp.info.utils.Result
 import com.chatapp.info.utils.Result.Success
 import com.chatapp.info.utils.Result.Error
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.ktx.storage
 import kotlinx.coroutines.tasks.await
 
-class ChatRemoteDataSource(): ChatDataSource {
+class RemoteChatRepository() {
 
     private val observableChats = MutableLiveData<Result<List<Chat>>?>()
     private val _rootFireStore = FirebaseFirestore.getInstance()
@@ -28,12 +26,11 @@ class ChatRemoteDataSource(): ChatDataSource {
     private fun chatCollection(userId: String) = usersCollection().document(userId)
         .collection(CHAT_COLLECTION)
 
-    override fun observeChats(): LiveData<Result<List<Chat>>?> {
+    fun observeChats(): LiveData<Result<List<Chat>>?> {
         return observableChats
     }
 
-
-    override suspend fun getChats(userId: String): Result<List<Chat>?> {
+    suspend fun getChats(userId: String): Result<List<Chat>?> {
         return try {
             val ref = chatCollection(userId).get().await()
             val chats = ref.toObjects(Chat::class.java)
@@ -59,10 +56,7 @@ class ChatRemoteDataSource(): ChatDataSource {
         }
     }
 
-
-
-
-    override suspend fun getChatById(chatId: String): Result<Chat?> {
+    suspend fun getChatById(chatId: String): Result<Chat?> {
         val resRef = chatCollection(chatId).whereEqualTo(CHAT_ID_FIELD, chatId).get().await()
         return if (!resRef.isEmpty) {
             Success(resRef.toObjects(Chat::class.java)[0])
@@ -71,8 +65,7 @@ class ChatRemoteDataSource(): ChatDataSource {
         }
     }
 
-
-    override suspend fun insertChat(chat: Chat) {
+     suspend fun insertChat(chat: Chat) {
         Log.d(TAG,"Inserting Chat")
 
 
@@ -94,7 +87,7 @@ class ChatRemoteDataSource(): ChatDataSource {
 
     }
 
-    override suspend fun updateChat(chat: Chat) {
+     suspend fun updateChat(chat: Chat) {
         val senderRef = chatCollection(chat.senderId).document(chat.chatId)
         val recipientRef = chatCollection(chat.recipientId).document(chat.chatId)
 
@@ -116,7 +109,7 @@ class ChatRemoteDataSource(): ChatDataSource {
 
     }
 
-    override suspend fun deleteChat(chat: Chat) {
+     suspend fun deleteChat(chat: Chat) {
         Log.d(TAG, "onDeleteChat: delete chat with Id: ${chat.chatId} initiated")
         val resRef = chatCollection(chat.senderId).document(chat.chatId)
         val c = resRef.get().await()
@@ -144,8 +137,7 @@ class ChatRemoteDataSource(): ChatDataSource {
     }
 
 
-
-    override suspend fun uploadImage(uri: Uri, fileName: String): Uri? {
+     suspend fun uploadImage(uri: Uri, fileName: String): Uri? {
         val imgRef = storageRef().child("$CHATS_STORAGE/$fileName")
         val uploadTask = imgRef.putFile(uri)
         val uriRef = uploadTask.continueWithTask { task ->
@@ -157,7 +149,7 @@ class ChatRemoteDataSource(): ChatDataSource {
         return uriRef.await()
     }
 
-    override fun deleteImage(imgUrl: String) {
+     fun deleteImage(imgUrl: String) {
         val ref = Firebase.storage.getReferenceFromUrl(imgUrl)
         ref.delete().addOnSuccessListener {
             Log.d(TAG, "onDelete: image deleted successfully!")
@@ -166,7 +158,7 @@ class ChatRemoteDataSource(): ChatDataSource {
         }
     }
 
-    override fun revertUpload(fileName: String) {
+     fun revertUpload(fileName: String) {
         val imgRef = storageRef().child("$CHATS_STORAGE/$fileName")
         imgRef.delete().addOnSuccessListener {
             Log.d(TAG, "onRevert: File with name: $fileName deleted successfully!")

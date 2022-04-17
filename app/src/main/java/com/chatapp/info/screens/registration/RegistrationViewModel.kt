@@ -9,7 +9,7 @@ import androidx.lifecycle.MutableLiveData
 import com.chatapp.info.ChatApplication
 import com.chatapp.info.R
 import com.chatapp.info.data.User
-import com.chatapp.info.remote.UserRemoteDataSource
+import com.chatapp.info.repository.user.RemoteUserRepository
 import com.chatapp.info.utils.StoreDataStatus
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.*
@@ -27,7 +27,7 @@ class RegistrationViewModel(application: Application) : AndroidViewModel(applica
     private val shopApp = ChatApplication(application.applicationContext)
     private val userRepository by lazy{ shopApp.userRepository }
 
-    private val _authRemoteDataSource by lazy { UserRemoteDataSource() }
+    private val _authRemoteDataSource by lazy { RemoteUserRepository() }
 
     //    private val repository = UserRepositoryOnline()
     private val scopeIO = CoroutineScope(Dispatchers.IO + Job())

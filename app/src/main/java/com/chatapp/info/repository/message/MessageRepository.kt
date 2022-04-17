@@ -5,8 +5,6 @@ import android.util.Log
 import androidx.core.net.toUri
 import androidx.lifecycle.LiveData
 import com.chatapp.info.data.Message
-import com.chatapp.info.local.message.MessageDataSource
-import com.chatapp.info.remote.MessageRemoteDataSource
 import com.chatapp.info.utils.ERR_UPLOAD
 import com.chatapp.info.utils.Result
 import com.chatapp.info.utils.Result.Success
@@ -17,62 +15,59 @@ import kotlinx.coroutines.supervisorScope
 import java.util.*
 
 class MessageRepository(
-    private val messageLocalDataSource: MessageDataSource,
-    private val messageRemoteDataSource: MessageRemoteDataSource
-) : MessageRepoInterface {
+    private val localMessageRepository: LocalMessageRepository,
+    private val remoteMessageRepository: RemoteMessageRepository
+) {
 
     companion object {
         private const val TAG = "MessageRepository"
     }
 
-    override suspend fun refreshMessages(chatId: String): StoreDataStatus? {
+    suspend fun refreshMessages(chatId: String): StoreDataStatus? {
         Log.d(TAG,"update messages in room")
        return updateMessagesFromRemoteSource(chatId)
     }
 
-
-    override suspend fun deleteMultipleMessages(data: List<Message>) {
-        messageLocalDataSource.deleteMultipleMessages(data)
+    suspend fun deleteMultipleMessages(data: List<Message>) {
+        localMessageRepository.deleteMultipleMessages(data)
     }
 
-    override fun observeMessage(): LiveData<Result<List<Message>>?> {
-      return messageLocalDataSource.observeMessages()
+    fun observeMessage(): LiveData<Result<List<Message>>?> {
+      return localMessageRepository.observeMessages()
     }
 
-    override suspend fun getMessagesByChatId(chatId: String): Result<List<Message>> {
-        return messageLocalDataSource.getMessageByChatId(chatId)
+    suspend fun getMessagesByChatId(chatId: String): Result<List<Message>> {
+        return localMessageRepository.getMessageByChatId(chatId)
     }
 
-    override fun observeMessagesOnLocalByChatId(chatId: String): LiveData<Result<List<Message>>?> {
-        return messageLocalDataSource.observeMessagesByChatId(chatId)
+    fun observeMessagesOnLocalByChatId(chatId: String): LiveData<Result<List<Message>>?> {
+        return localMessageRepository.observeMessagesByChatId(chatId)
     }
 
-    override fun observeMessagesOnRemoteByChatId(chatId: String, listener: (List<Message>) -> Unit) {
-       return messageRemoteDataSource.observeMessagesOnRemoteByChatId(chatId, listener)
+    fun observeMessagesOnRemoteByChatId(chatId: String, listener: (List<Message>) -> Unit) {
+       return remoteMessageRepository.observeMessagesOnRemoteByChatId(chatId, listener)
     }
 
-    override suspend fun insertMultipleMessages(data: List<Message>) {
-        messageLocalDataSource.insertMultipleMessages(data)
+    suspend fun insertMultipleMessages(data: List<Message>) {
+        localMessageRepository.insertMultipleMessages(data)
     }
 
-
-    override suspend fun getMessageById(messageId: String, forceUpdate: Boolean): Result<Message?> {
+    suspend fun getMessageById(messageId: String, forceUpdate: Boolean): Result<Message?> {
         if (forceUpdate) {
             updateMessageFromRemoteSource(messageId)
         }
-        return messageLocalDataSource.getMessageById(messageId)
+        return localMessageRepository.getMessageById(messageId)
     }
 
-
-    override suspend fun insertMessage(message: Message): Result<Boolean> {
+    suspend fun insertMessage(message: Message): Result<Boolean> {
         return supervisorScope {
             val localRes = async {
                 Log.d(TAG, "onInsertMessage: adding Message to local source")
-                messageLocalDataSource.insertMessage(message)
+                localMessageRepository.insertMessage(message)
             }
             val remoteRes = async {
                 Log.d(TAG, "onInsertMessage: adding Message to remote source")
-                messageRemoteDataSource.insertMessage(message)
+                remoteMessageRepository.insertMessage(message)
             }
             try {
                 localRes.await()
@@ -84,16 +79,16 @@ class MessageRepository(
         }
     }
 
-    override suspend fun insertImages(imgList: List<Uri>): List<String> {
+    suspend fun insertImages(imgList: List<Uri>): List<String> {
         var urlList = mutableListOf<String>()
         imgList.forEach label@{ uri ->
             val uniId = UUID.randomUUID().toString()
             val fileName = uniId + uri.lastPathSegment?.split("/")?.last()
             try {
-                val downloadUrl = messageRemoteDataSource.uploadImage(uri, fileName)
+                val downloadUrl = remoteMessageRepository.uploadImage(uri, fileName)
                 urlList.add(downloadUrl.toString())
             } catch (e: Exception) {
-                messageRemoteDataSource.revertUpload(fileName)
+                remoteMessageRepository.revertUpload(fileName)
                 Log.d(TAG, "exception: message = $e")
                 urlList = mutableListOf()
                 urlList.add(ERR_UPLOAD)
@@ -103,16 +98,15 @@ class MessageRepository(
         return urlList
     }
 
-
-    override suspend fun updateMessage(message: Message): Result<Boolean> {
+    suspend fun updateMessage(message: Message): Result<Boolean> {
         return supervisorScope {
             val remoteRes = async {
                 Log.d(TAG, "onUpdate: updating Message in remote source")
-                messageRemoteDataSource.updateMessage(message)
+                remoteMessageRepository.updateMessage(message)
             }
             val localRes = async {
                 Log.d(TAG, "onUpdate: updating Message in local source")
-                messageLocalDataSource.updateMessage(message)
+                localMessageRepository.updateMessage(message)
             }
             try {
                 remoteRes.await()
@@ -124,17 +118,17 @@ class MessageRepository(
         }
     }
 
-    override suspend fun updateImages(newList: List<Uri>, oldList: List<String>): List<String> {
+    suspend fun updateImages(newList: List<Uri>, oldList: List<String>): List<String> {
         var urlList = mutableListOf<String>()
         newList.forEach label@{ uri ->
             if (!oldList.contains(uri.toString())) {
                 val uniId = UUID.randomUUID().toString()
                 val fileName = uniId + uri.lastPathSegment?.split("/")?.last()
                 try {
-                    val downloadUrl = messageRemoteDataSource.uploadImage(uri, fileName)
+                    val downloadUrl = remoteMessageRepository.uploadImage(uri, fileName)
                     urlList.add(downloadUrl.toString())
                 } catch (e: Exception) {
-                    messageRemoteDataSource.revertUpload(fileName)
+                    remoteMessageRepository.revertUpload(fileName)
                     Log.d(TAG, "exception: message = $e")
                     urlList = mutableListOf()
                     urlList.add(ERR_UPLOAD)
@@ -146,21 +140,21 @@ class MessageRepository(
         }
         oldList.forEach { imgUrl ->
             if (!newList.contains(imgUrl.toUri())) {
-                messageRemoteDataSource.deleteImage(imgUrl)
+                remoteMessageRepository.deleteImage(imgUrl)
             }
         }
         return urlList
     }
 
-    override suspend fun deleteMessage(message: Message): Result<Boolean> {
+    suspend fun deleteMessage(message: Message): Result<Boolean> {
         return supervisorScope {
             val remoteRes = async {
                 Log.d(TAG, "onDelete: deleting Message from remote source")
-                messageRemoteDataSource.deleteMessage(message)
+                remoteMessageRepository.deleteMessage(message)
             }
             val localRes = async {
                 Log.d(TAG, "onDelete: deleting Message from local source")
-                messageLocalDataSource.deleteMessage(message)
+                localMessageRepository.deleteMessage(message)
             }
             try {
                 remoteRes.await()
@@ -172,25 +166,24 @@ class MessageRepository(
         }
     }
 
-    override suspend fun deleteAllMessages() {
-        messageLocalDataSource.deleteAllMessages()
+    suspend fun deleteAllMessages() {
+        localMessageRepository.deleteAllMessages()
     }
 
-    override suspend fun getLastMessage(chatId: String): Result<Message?> {
-       return messageLocalDataSource.getLastMessage(chatId)
+    suspend fun getLastMessage(chatId: String): Result<Message?> {
+       return localMessageRepository.getLastMessage(chatId)
     }
 
-    override suspend fun deleteAllMessagesByChatId(chatId: String) {
-        messageLocalDataSource.deleteAllMessagesByChatId(chatId)
+    suspend fun deleteAllMessagesByChatId(chatId: String) {
+        localMessageRepository.deleteAllMessagesByChatId(chatId)
     }
-
 
     private suspend fun updateMessageFromRemoteSource(messageId: String): StoreDataStatus? {
         var res: StoreDataStatus? = null
         try {
-            val messageRemote = messageRemoteDataSource.getMessageById(messageId)
+            val messageRemote = remoteMessageRepository.getMessageById(messageId)
             if (messageRemote is Success) {
-                messageRemote.data?.let { messageRemoteDataSource.insertMessage(it) }
+                messageRemote.data?.let { remoteMessageRepository.insertMessage(it) }
                 res = StoreDataStatus.DONE
             } else {
                 res = StoreDataStatus.ERROR
@@ -203,16 +196,14 @@ class MessageRepository(
         return res
     }
 
-
-
     private suspend fun updateMessagesFromRemoteSource(chatId: String): StoreDataStatus? {
         var res: StoreDataStatus? = null
         try {
-            val remoteMessages = messageRemoteDataSource.getMessageByChatId(chatId)
+            val remoteMessages = remoteMessageRepository.getMessageByChatId(chatId)
             if (remoteMessages is Success) {
                 Log.d(TAG, "messages list = ${remoteMessages.data.size}")
 //                deleteAllMessagesByChatId(chatId)
-                messageLocalDataSource.insertMultipleMessages(remoteMessages.data)
+                localMessageRepository.insertMultipleMessages(remoteMessages.data)
                 res = StoreDataStatus.DONE
             } else {
                 res = StoreDataStatus.ERROR

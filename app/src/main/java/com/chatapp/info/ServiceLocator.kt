@@ -3,20 +3,14 @@ package com.chatapp.info
 import android.content.Context
 import androidx.annotation.VisibleForTesting
 import com.chatapp.info.local.ChatAppDataBase
-import com.chatapp.info.local.chat.ChatDataSource
-import com.chatapp.info.local.chat.ChatLocalDataSource
-import com.chatapp.info.local.message.MessageDataSource
-import com.chatapp.info.local.message.MessageLocalDataSource
-import com.chatapp.info.local.user.UserDataSource
-import com.chatapp.info.local.user.UserLocalDataSource
-import com.chatapp.info.remote.ChatRemoteDataSource
-import com.chatapp.info.remote.MessageRemoteDataSource
-import com.chatapp.info.remote.UserRemoteDataSource
-import com.chatapp.info.repository.chat.ChatRepoInterface
+import com.chatapp.info.repository.chat.LocalChatRepository
+import com.chatapp.info.repository.message.LocalMessageRepository
+import com.chatapp.info.repository.user.LocalUserRepository
+import com.chatapp.info.repository.chat.RemoteChatRepository
+import com.chatapp.info.repository.message.RemoteMessageRepository
+import com.chatapp.info.repository.user.RemoteUserRepository
 import com.chatapp.info.repository.chat.ChatRepository
-import com.chatapp.info.repository.message.MessageRepoInterface
 import com.chatapp.info.repository.message.MessageRepository
-import com.chatapp.info.repository.user.UserRepoInterface
 import com.chatapp.info.repository.user.UserRepository
 import com.chatapp.info.utils.ChatAppSessionManager
 
@@ -26,30 +20,30 @@ object ServiceLocator {
 	private val lock = Any()
 
 	@Volatile
-	var userRepository: UserRepoInterface? = null
+	var userRepository: UserRepository? = null
 		@VisibleForTesting set
 
 	@Volatile
-	var messageRepository: MessageRepoInterface? = null
+	var messageRepository: MessageRepository? = null
 		@VisibleForTesting set
 
 	@Volatile
-	var chatRepository: ChatRepoInterface? = null
+	var chatRepository: ChatRepository? = null
 		@VisibleForTesting set
 
-	fun provideUserRepository(context: Context): UserRepoInterface {
+	fun provideUserRepository(context: Context): UserRepository {
 		synchronized(this) {
 			return userRepository ?: createUserRepository(context)
 		}
 	}
 
-	fun provideMessageRepository(context: Context): MessageRepoInterface {
+	fun provideMessageRepository(context: Context): MessageRepository {
 		synchronized(this) {
 			return messageRepository ?: createMessageRepository(context)
 		}
 	}
 
-	fun provideChatRepository(context: Context): ChatRepoInterface {
+	fun provideChatRepository(context: Context): ChatRepository {
 		synchronized(this) {
 			return chatRepository ?: createChatRepository(context)
 		}
@@ -68,38 +62,32 @@ object ServiceLocator {
 		}
 	}
 
-	private fun createMessageRepository(context: Context): MessageRepoInterface {
-		val newRepo = MessageRepository(createMessageLocalDataSource(context), MessageRemoteDataSource() )
+	private fun createMessageRepository(context: Context): MessageRepository {
+		val database = database ?: ChatAppDataBase.getInstance(context.applicationContext)
+		val localRepository = LocalMessageRepository(database.messagesDao())
+		val newRepo = MessageRepository(localRepository, RemoteMessageRepository() )
 		messageRepository = newRepo
 		return newRepo
 	}
 
-	private fun createChatRepository(context: Context): ChatRepoInterface {
-		val newRepo = ChatRepository(createChatLocalDataSource(context), ChatRemoteDataSource() )
+	private fun createChatRepository(context: Context): ChatRepository {
+		val database = database ?: ChatAppDataBase.getInstance(context.applicationContext)
+		val localRepository =  LocalChatRepository(database.localChatApi())
+		val newRepo = ChatRepository(localRepository, RemoteChatRepository())
 		chatRepository = newRepo
 		return newRepo
 	}
 
 
-	private fun createUserRepository(context: Context): UserRepoInterface {
+	private fun createUserRepository(context: Context): UserRepository {
+		val database = database ?: ChatAppDataBase.getInstance(context.applicationContext)
+		val localRepository = LocalUserRepository(database.userDao())
 		val appSession = ChatAppSessionManager(context.applicationContext)
-		val newRepo = UserRepository(createUserLocalDataSource(context), UserRemoteDataSource(), appSession)
+		val newRepo = UserRepository(localRepository, RemoteUserRepository(), appSession)
 		userRepository = newRepo
 		return newRepo
 	}
 
-	private fun createMessageLocalDataSource(context: Context): MessageDataSource {
-		val database = database ?: ChatAppDataBase.getInstance(context.applicationContext)
-		return MessageLocalDataSource(database.messagesDao())
-	}
 
-	private fun createUserLocalDataSource(context: Context): UserDataSource {
-		val database = database ?: ChatAppDataBase.getInstance(context.applicationContext)
-		return UserLocalDataSource(database.userDao())
-	}
 
-	private fun createChatLocalDataSource(context: Context): ChatDataSource {
-		val database = database ?: ChatAppDataBase.getInstance(context.applicationContext)
-		return ChatLocalDataSource(database.chatDao())
-	}
 }

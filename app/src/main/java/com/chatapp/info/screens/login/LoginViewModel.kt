@@ -9,9 +9,8 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.chatapp.info.ChatApplication
 import com.chatapp.info.R
-import com.chatapp.info.remote.UserRemoteDataSource
+import com.chatapp.info.repository.user.RemoteUserRepository
 import com.chatapp.info.utils.ChatAppSessionManager
-import com.chatapp.info.utils.Result
 import com.chatapp.info.utils.StoreDataStatus
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -30,7 +29,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     private val shopApp = ChatApplication(application.applicationContext)
     private val userRepository by lazy{ shopApp.userRepository}
 
-    private val _userRemoteDataSource by lazy { UserRemoteDataSource() }
+    private val _userRemoteDataSource by lazy { RemoteUserRepository() }
 
 //    private val _userLocalDataSource by lazy {
 //        UserLocalDataSource(authRepository.in)

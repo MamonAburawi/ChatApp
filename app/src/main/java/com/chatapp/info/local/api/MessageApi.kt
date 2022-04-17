@@ -1,4 +1,4 @@
-package com.chatapp.info.local.message
+package com.chatapp.info.local.api
 
 import androidx.lifecycle.LiveData
 import androidx.room.*
@@ -6,7 +6,8 @@ import com.chatapp.info.data.Message
 import com.chatapp.info.data.User
 
 @Dao
-interface MessageDao {
+interface MessageApi {
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(message: Message)
 
@@ -36,7 +37,6 @@ interface MessageDao {
 
     @Query("DELETE FROM messages")
     suspend fun deleteAllMessages()
-
 
 
 }

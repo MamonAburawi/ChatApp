@@ -1,4 +1,4 @@
-package com.chatapp.info.local.chat
+package com.chatapp.info.local.api
 
 import androidx.lifecycle.LiveData
 import androidx.room.*
@@ -6,7 +6,7 @@ import com.chatapp.info.data.Chat
 
 
 @Dao
-interface ChatDoa {
+interface ChatApi {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(chat: Chat)
