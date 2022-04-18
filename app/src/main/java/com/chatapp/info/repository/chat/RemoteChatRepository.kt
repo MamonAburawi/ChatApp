@@ -66,7 +66,7 @@ class RemoteChatRepository() {
     }
 
      suspend fun insertChat(chat: Chat) {
-        Log.d(TAG,"Inserting Chat")
+        Log.d(TAG,"Inserting Chat to remote")
 
 
 //        usersCollection().document(chat.senderId)

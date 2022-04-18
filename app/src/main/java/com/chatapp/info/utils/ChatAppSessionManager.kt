@@ -2,7 +2,10 @@ package com.chatapp.info.utils
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Bundle
+import com.chatapp.info.data.Message
 import com.chatapp.info.data.User
+import com.google.gson.Gson
 
 
 class ChatAppSessionManager(context: Context) {
@@ -20,12 +23,43 @@ class ChatAppSessionManager(context: Context) {
 		editor.commit()
 	}
 
-	fun update(user: User){
+	fun update(user: User) {
 		editor.putString(KEY_ID, user.userId)
 		editor.putString(KEY_NAME, user.name)
 		editor.commit()
 	}
 
+	fun saveChatId(recipientId: String,chatId: String){
+		val key = recipientId
+		editor.putString(key,chatId)
+		editor.commit()
+	}
+
+	fun getChatId(recipientId: String): String? {
+		val key = recipientId
+		return userSession.getString(key,"")
+	}
+
+	fun saveLastMessage(last: Message){
+		val key = last.chatId
+		val gson = Gson()
+		val json = gson.toJson(last)
+		editor.putString(key,json)
+		editor.commit()
+	}
+
+	fun getLastMessages(ids: List<String>): List<Message> {
+		val list = ArrayList<Message>()
+		if (ids.isNotEmpty()){
+			ids.forEach { chatId ->
+				val gson = Gson()
+				val json = userSession.getString(chatId,"")
+				val message = gson.fromJson(json , Message::class.java)
+				list.add(message)
+			}
+		}
+		return list
+	}
 
 	fun isRememberMeOn(): Boolean = userSession.getBoolean(KEY_REMEMBER_ME,false)
 

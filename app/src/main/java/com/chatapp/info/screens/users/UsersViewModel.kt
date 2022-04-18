@@ -1,9 +1,7 @@
 package com.chatapp.info.screens.users
 
-import android.app.Application
 import android.util.Log
 import androidx.lifecycle.*
-import com.chatapp.info.ChatApplication
 import com.chatapp.info.data.Chat
 import com.chatapp.info.data.User
 import com.chatapp.info.repository.chat.ChatRepository
@@ -11,26 +9,22 @@ import com.chatapp.info.repository.user.UserRepository
 import com.chatapp.info.screens.chat.ChatViewModel
 import com.chatapp.info.utils.*
 import kotlinx.coroutines.*
+import java.util.*
 
 class UsersViewModel(
     private val userRepository: UserRepository,
-    private val chatRepository: ChatRepository): ViewModel() {
+    private val chatRepository: ChatRepository,
+    private val chats: LiveData<List<Chat>>): ViewModel() {
 
     companion object{
         const val TAG = "UsersViewModel"
     }
 
-//    private val sessionManager by lazy { ChatAppSessionManager(application) }
-//    private val chatApplication by lazy { ChatApplication(application) }
-//
-//    private val userRepository by lazy { chatApplication.userRepository }
-//    private val chatRepository by lazy { chatApplication.chatRepository }
-
-    private val userId = userRepository.sessionManager.getUserIdFromSession()
+    private val appManager = userRepository.sessionManager
+    private val userId = appManager.getUserIdFromSession()
 
     private var _currentUser = MutableLiveData<User>()
     val currentUser: LiveData<User> = _currentUser
-
 
     private val scopeIO = CoroutineScope(Dispatchers.IO + Job())
     private val scopeMain = CoroutineScope(Dispatchers.Main + Job())
@@ -38,11 +32,11 @@ class UsersViewModel(
     private var _users = MutableLiveData<List<User>?>()
     val users: LiveData<List<User>?> get() = _users
 
+    private val _navigateToChat = MutableLiveData<String?>()
+    val navigateToChat: LiveData<String?> = _navigateToChat
 
-    private val _navigateToChat = MutableLiveData<String>()
-    val navigateToChat: LiveData<String> = _navigateToChat
-
-
+    private var _localChats = MutableLiveData<List<Chat>>()
+    val localChats: LiveData<List<Chat>> get() = _localChats
 
 
 
@@ -53,50 +47,66 @@ class UsersViewModel(
     init {
 //        _signOut.value = false
 //        getCurrentUser()
+        hardRefreshUsesData()
         observeLocalUsers()
+//        refreshChats()
+        observeRemoteChats()
+//        observeLocalChats()
+//        _localChats = chats as MutableLiveData<List<Chat>>
     }
+
+    fun initData(){
+        _localChats = chats as MutableLiveData<List<Chat>>
+    }
+
+
+//    private fun observeLocalChats(){
+//        _localChats = Transformations.switchMap(chatRepository.observeChats()) {
+//            getChatsLiveData(it!!)
+//        } as MutableLiveData<List<Chat>>
+//    }
+//
+//    private fun getChatsLiveData(result: Result<List<Chat>>): LiveData<List<Chat>?> {
+//        val res = MutableLiveData<List<Chat>?>()
+//        if (result is Result.Success) {
+//            Log.d(ChatViewModel.TAG, "result is success")
+//            res.value = result.data
+//        } else {
+//            Log.d(ChatViewModel.TAG, "result is not success")
+//            if (result is Result.Error)
+//                res.value = null
+//                Log.d(ChatViewModel.TAG, "getMessagesLiveData: Error Occurred: $result")
+//        }
+//        return res
+//    }
+//
+
+
+
 
 
     fun navigateToChat(recipient: User){
         viewModelScope.launch {
-            val resSenderChats = userRepository.getUserChats(userId!!)
-            val resRecipientChats = userRepository.getUserChats(recipient.userId)
-            if(resSenderChats is Result.Success){
-                if(resRecipientChats is Result.Success){
-                    val recipientChats = resRecipientChats.data
-                    val remoteChats = resSenderChats.data
-
-
-                    Log.d(TAG,"sender chats: ${remoteChats?.size}")
-                    Log.d(TAG,"recipient chats: ${recipientChats.size}")
-
-
-                    val chat = findCommon(remoteChats,recipientChats)
-                    Log.d(TAG,"common chatId: $chat")
-
-                if (chat.chatId.isNotEmpty()){
+            val chats = _localChats.value
+            if (chats != null){
+                val chat = chats.find { it.recipientId == userId }
+                if (chat != null) {
+                    Log.d(TAG,"current chatId = ${chat.chatId}")
                     _navigateToChat.value = chat.chatId
-                    Log.d(TAG,"old chat ID: ${chat}")
                 }else{
-                    val newChatId = getChatId(userId, recipient.userId )
+                    val newChatId = getChatId(userId!!,recipient.userId)
                     _navigateToChat.value = newChatId
-                    Log.d(TAG,"new chat Id: $newChatId")
-
-                    val c = Chat(newChatId,userId,recipient.userId,chat.senderName, recipient.name,"")
-                    val resChat = async { chatRepository.insertChat(c) }
-                    resChat.await()
-
+                    val newChat = Chat(newChatId,userId,recipient.userId,"",recipient.name,"","", Date())
+                    chatRepository.insertChat(newChat)
                 }
-
-                }
-
-
             }
         }
     }
 
 
-    fun observeRemoteChatsIds(){
+
+
+    private fun observeRemoteChats(){
         viewModelScope.launch {
             userRepository.observeUserChatsIds(userId!!){ chats ->
                 viewModelScope.launch {
@@ -128,7 +138,7 @@ class UsersViewModel(
     }
 
     fun navigateToChatDone(){
-        _navigateToChat.value = ""
+        _navigateToChat.value = null
     }
 
 
@@ -169,7 +179,7 @@ class UsersViewModel(
 
             // remove current user
             if (allUsers != null){
-                val currentUser = allUsers.filter { it.userId == userId }.get(0)
+                val currentUser = allUsers.find { it.userId == userId }
                 val list = allUsers.toMutableList()
                 list.remove(currentUser)
 
@@ -186,7 +196,7 @@ class UsersViewModel(
 
 
 
-    fun getLocalUsers(){
+    fun getLocalUsers() {
         viewModelScope.launch {
             val users = userRepository.getAllUsers()
             if (users != null){

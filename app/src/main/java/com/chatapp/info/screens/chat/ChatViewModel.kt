@@ -209,7 +209,7 @@ class ChatViewModel(
                 _newMessages.value = news
                 messageRepository.insertMultipleMessages(news)
                 val lastMessage = news.last()
-                updateChat(lastMessage)
+//                updateChat(lastMessage)
 
             }
 
@@ -218,7 +218,7 @@ class ChatViewModel(
                     val removed = localMessages.findDiffElements(remoteMessages){it.messageId}
                     messageRepository.deleteMultipleMessages(removed)
                     val lastM = removed.last()
-                    updateChat(lastM)
+//                    updateChat(lastM)
                     Log.d(TAG,"removed Messages: ${removed.size}")
                 }
             }
@@ -262,23 +262,23 @@ class ChatViewModel(
                 }
             }
             messageRepository.insertMessage(message)
-            updateChat(message)
+//            updateChat(message)
         }
     }
 
 
-    private suspend fun updateChat(message: Message){
-        val res = chatRepository.getChats(message.senderId)
-        if (res is Success){
-            val data = res.data
-            val chat = data?.filter { it.chatId == message.chatId }?.toMutableList()?.get(0)
-            if(chat != null){
-                chat.lastUpdate = message.date
-                chat.lastMessage = message.text
-                chatRepository.updateChat(chat)
-            }
-        }
-    }
+//    private suspend fun updateChat(message: Message){
+//        val res = chatRepository.getChats(message.senderId)
+//        if (res is Success){
+//            val data = res.data
+//            val chat = data?.filter { it.chatId == message.chatId }?.toMutableList()?.get(0)
+//            if(chat != null){
+//                chat.lastUpdate = message.date
+//                chat.lastMessage = message.text
+//                chatRepository.updateChat(chat)
+//            }
+//        }
+//    }
 
 
 

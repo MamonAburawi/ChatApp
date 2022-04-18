@@ -54,6 +54,7 @@ fun <T,R> Collection<T>.findDiffElements(elements: Collection<T>,selector:(T)->R
 
 
 
+// but this function inside collection.
 fun findCommon(first: List<Chat>, second: List<Chat>): Chat{
     var c = Chat()
     first.forEach { chat ->

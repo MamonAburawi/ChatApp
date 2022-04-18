@@ -8,6 +8,7 @@ import com.chatapp.info.utils.Result
 import com.chatapp.info.utils.Result.Success
 import com.chatapp.info.utils.Result.Error
 import com.chatapp.info.utils.StoreDataStatus
+import com.chatapp.info.utils.findDiffElements
 import kotlinx.coroutines.async
 import kotlinx.coroutines.supervisorScope
 import java.util.*
@@ -80,7 +81,7 @@ class ChatRepository(
         return supervisorScope {
 //            val localRes = async {
 //                Log.d(TAG, "onInsertChat: adding Chat to local source")
-//                chatLocalDataSource.insertChat(chat)
+//                chatLocalRepository.insertChat(chat)
 //            }
             val remoteRes = async {
                 Log.d(TAG, "onInsertChat: adding Message to remote source")
@@ -137,15 +138,14 @@ class ChatRepository(
         var res: StoreDataStatus? = null
         try {
             res = StoreDataStatus.LOADING
+            deleteAllChats()
             val remoteMessages = chatRemoteRepository.getChats(userId)
             if (remoteMessages is Success) {
-                val data = remoteMessages.data
-                if (data != null){
-                    Log.d(TAG, "chats list = ${data.size}")
-                    chatLocalRepository.insertMultipleChats(data)
-                    res = StoreDataStatus.DONE
-                }
-
+                val remote = remoteMessages.data
+                    if (remote != null){
+                        chatLocalRepository.insertMultipleChats(remote)
+                        res = StoreDataStatus.DONE
+                    }
             } else {
                 res = StoreDataStatus.ERROR
                 if (remoteMessages is Error)
@@ -154,7 +154,6 @@ class ChatRepository(
         } catch (e: Exception) {
             Log.d(TAG, "onUpdateChatsFromRemoteSource: Exception occurred, ${e.message}")
         }
-
         return res
     }
 

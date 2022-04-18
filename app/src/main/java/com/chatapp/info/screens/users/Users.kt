@@ -3,23 +3,20 @@ package com.chatapp.info.screens.users
 
 import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.PopupMenu
-import android.widget.Toast
 import androidx.core.os.bundleOf
 import androidx.core.widget.doAfterTextChanged
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.chatapp.info.R
-import com.chatapp.info.RegistrationActivity
 import com.chatapp.info.data.User
 import com.chatapp.info.databinding.UsersBinding
 import com.chatapp.info.utils.KEY_CHAT_ID
@@ -92,11 +89,22 @@ class Users : Fragment() {
 
 
 
+        viewModel.localChats.observe(viewLifecycleOwner){
+            if (it != null){
+                Log.d("hhh","chats size: " + it.size)
+                if (it.isNotEmpty()){
+                    Log.d("hhh","chatId: " + it.first().chatId)
+                }
+            }
+        }
+
+
+
         // todo fix the bundle issue.
 
         /** live data navigate to chat **/
         viewModel.navigateToChat.observe(viewLifecycleOwner){ chatId ->
-            if (chatId.isNotEmpty()){
+            if (chatId != null){
 //                Toast.makeText(context,"chatId: $chatId",Toast.LENGTH_SHORT).show()
 //                Toast.makeText(context,"recpientName: ${recipientData?.name}",Toast.LENGTH_SHORT).show()
 

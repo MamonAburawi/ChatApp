@@ -1,7 +1,13 @@
 package com.chatapp.info.di
 
 import android.app.Application
+import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Transformations
+import androidx.lifecycle.viewModelScope
 import androidx.room.Room
+import com.chatapp.info.data.Chat
 import com.chatapp.info.local.ChatAppDataBase
 import com.chatapp.info.local.api.ChatApi
 import com.chatapp.info.local.api.MessageApi
@@ -21,10 +27,16 @@ import com.chatapp.info.screens.login.LoginViewModel
 import com.chatapp.info.screens.registration.RegistrationViewModel
 import com.chatapp.info.screens.users.UsersViewModel
 import com.chatapp.info.utils.ChatAppSessionManager
+import com.chatapp.info.utils.Result
+import com.chatapp.info.utils.findDiffElements
+import com.chatapp.info.utils.getChatId
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.viewmodel.dsl.viewModel
 import org.koin.dsl.module
+import kotlin.coroutines.suspendCoroutine
 import com.chatapp.info.local.api.UserApi as UserApi
 
 val viewModelModule = module {
@@ -52,7 +64,8 @@ val viewModelModule = module {
     viewModel {
         UsersViewModel(
             userRepository = get(),
-            chatRepository = get()
+            chatRepository = get(),
+            chats = get()
         )
     }
 
@@ -87,12 +100,43 @@ val chatRepoModule = module {
 
 
 
-val chatDataBaseModule = module {
 
+val remoteDataBaseModule = module {
+
+    fun getChatsLiveData(result: Result<List<Chat>>): LiveData<List<Chat>?> {
+        val res = MutableLiveData<List<Chat>?>()
+        if (result is Result.Success) {
+            Log.d(ChatViewModel.TAG, "result is success")
+            res.value = result.data
+        } else {
+            Log.d(ChatViewModel.TAG, "result is not success")
+            if (result is Result.Error)
+                res.value = null
+            Log.d(ChatViewModel.TAG, "getMessagesLiveData: Error Occurred: $result")
+        }
+        return res
+    }
+
+
+    fun observeLocalChats(chatRepository: ChatRepository): LiveData<List<Chat>?> {
+         return Transformations.switchMap(chatRepository.observeChats()) {
+            getChatsLiveData(it!!)
+        }as MutableLiveData<List<Chat>>
+    }
+
+
+    single { observeLocalChats(chatRepository = get()) }
+
+
+}
+
+
+
+val chatDataBaseModule = module {
 
     fun createDataBase(application: Application): ChatAppDataBase {
         return Room.databaseBuilder(
-            application, ChatAppDataBase::class.java, "ChatDataBase19")
+            application, ChatAppDataBase::class.java, "ChatDataBase31")
             .fallbackToDestructiveMigration()
             .allowMainThreadQueries()
             .build()

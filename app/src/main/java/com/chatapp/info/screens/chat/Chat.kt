@@ -8,7 +8,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
-import android.widget.Toast
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -27,7 +26,7 @@ import org.koin.android.viewmodel.ext.android.sharedViewModel
 import java.util.*
 import kotlin.collections.ArrayList
 
-
+@SuppressLint("NotifyDataSetChanged")
 class Chat: Fragment() {
 
 
@@ -52,14 +51,13 @@ class Chat: Fragment() {
     // TODO: create layout for send image & message.
 
 
-    @SuppressLint("NotifyDataSetChanged")
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         binding = DataBindingUtil.inflate(inflater, R.layout.chat,container,false)
 
         chatId = arguments?.get(KEY_CHAT_ID) as String
         recipient = arguments?.get(KEY_RECIPIENT) as User
 
-        Toast.makeText(context,"recipient: ${recipient.name} \n chatId: $chatId",Toast.LENGTH_SHORT).show()
 
         initChat()
         setViews()
@@ -186,13 +184,6 @@ class Chat: Fragment() {
     private fun setObserves() {
 
 
-//        viewModel.allMessages.observe(viewLifecycleOwner){
-//            if (it != null){
-//
-//            }
-//
-//        }
-//
 
         /** live data messages **/
         viewModel.chatMessages.observe(viewLifecycleOwner){ chatMessages ->

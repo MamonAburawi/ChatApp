@@ -13,23 +13,13 @@ import org.koin.dsl.module
 
 class ChatApplication(): Application() {
 
-//    val userRepository: UserRepository
-//        get() = ServiceLocator.provideUserRepository(context)
-//
-//    val messageRepository: MessageRepository
-//        get() = ServiceLocator.provideMessageRepository(context)
-//
-//    val chatRepository: ChatRepository
-//        get() = ServiceLocator.provideChatRepository(context)
-//
-
     override fun onCreate() {
         super.onCreate()
-
 
         startKoin {
             androidContext(this@ChatApplication)
             modules(listOf(
+                remoteDataBaseModule,
                 viewModelModule,
                 userRepoModule,
                 messageRepoModule,
@@ -37,9 +27,6 @@ class ChatApplication(): Application() {
                 chatDataBaseModule,
             ))
         }
-
-
-
 
     }
 }
