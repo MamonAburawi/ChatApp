@@ -13,11 +13,14 @@ import com.chatapp.info.R
 import com.chatapp.info.data.User
 import com.chatapp.info.databinding.RegistrationBinding
 import com.chatapp.info.utils.StoreDataStatus
+import org.koin.android.viewmodel.ext.android.sharedViewModel
 
 class Registration : Fragment() {
 
 
-    private lateinit var viewModel: RegistrationViewModel
+//    private lateinit var viewModel: RegistrationViewModel
+    private val viewModel by sharedViewModel<RegistrationViewModel>()
+
     private lateinit var binding : RegistrationBinding
 
     private var email = ""
@@ -29,7 +32,7 @@ class Registration : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
 
 
-        viewModel = ViewModelProvider(this)[RegistrationViewModel::class.java]
+//        viewModel = ViewModelProvider(this)[RegistrationViewModel::class.java]
 
         binding = DataBindingUtil.inflate(inflater, R.layout.registration,container,false)
 

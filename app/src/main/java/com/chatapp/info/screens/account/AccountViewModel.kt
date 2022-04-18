@@ -1,21 +1,20 @@
 package com.chatapp.info.screens.account
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.viewModelScope
-import com.chatapp.info.ChatApplication
-import com.chatapp.info.utils.ChatAppSessionManager
+
+import androidx.lifecycle.*
+import com.chatapp.info.repository.user.UserRepository
 import kotlinx.coroutines.launch
 
-class AccountViewModel(application: Application) : AndroidViewModel(application) {
+class AccountViewModel(
+    private val userRepository: UserRepository,
+) :ViewModel() {
 
+    private val userId = userRepository.sessionManager.getUserIdFromSession()
 
-    private val sessionManager by lazy { ChatAppSessionManager(application) }
-    private val chatApplication by lazy { ChatApplication(application) }
-    private val userRepository by lazy { chatApplication.userRepository }
-    private val userId = sessionManager.getUserIdFromSession()
+//    private val sessionManager by lazy { ChatAppSessionManager(application) }
+//    private val chatApplication by lazy { ChatApplication(application) }
+//    private val userRepository by lazy { chatApplication.userRepository }
+
 
     private val _signOut = MutableLiveData<Boolean?>()
     val signOut: LiveData<Boolean?> = _signOut

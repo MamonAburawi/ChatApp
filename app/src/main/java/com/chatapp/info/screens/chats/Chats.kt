@@ -16,6 +16,7 @@ import com.chatapp.info.databinding.UserChatsBinding
 import com.chatapp.info.screens.chat.ChatViewModel
 import com.chatapp.info.screens.users.UsersViewModel
 import com.chatapp.info.utils.KEY_RECIPIENT
+import org.koin.android.viewmodel.ext.android.sharedViewModel
 
 
 class Chats : Fragment() {
@@ -26,9 +27,11 @@ class Chats : Fragment() {
         const val TAG = "ChatsFragment"
     }
 
-    private val userViewModel by activityViewModels<UsersViewModel>()
-    private val chatViewModel by activityViewModels<ChatViewModel>()
-    private lateinit var viewModel: ChatsViewModel
+//    private val userViewModel by activityViewModels<UsersViewModel>()
+    private val chatViewModel by sharedViewModel<ChatViewModel>()
+    private val viewModel by sharedViewModel<ChatsViewModel>()
+
+//    private lateinit var viewModel: ChatsViewModel
 
 
     private lateinit var binding: UserChatsBinding
@@ -38,7 +41,7 @@ class Chats : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
 
         binding = DataBindingUtil.inflate(inflater,R.layout.user_chats, container, false)
-        viewModel = ViewModelProvider(this)[ChatsViewModel::class.java]
+//        viewModel = ViewModelProvider(this)[ChatsViewModel::class.java]
 
 
 

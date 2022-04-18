@@ -6,26 +6,28 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import com.chatapp.info.ChatApplication
 import com.chatapp.info.R
 import com.chatapp.info.data.User
 import com.chatapp.info.repository.user.RemoteUserRepository
+import com.chatapp.info.repository.user.UserRepository
 import com.chatapp.info.utils.StoreDataStatus
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.*
 
 
-class RegistrationViewModel(application: Application) : AndroidViewModel(application) {
+class RegistrationViewModel(private val userRepository: UserRepository): ViewModel() {
 
     companion object{
         const val TAG = "Registration"
     }
 
-    private val app = application
+//    private val app = application
 
 
-    private val shopApp = ChatApplication(application.applicationContext)
-    private val userRepository by lazy{ shopApp.userRepository }
+//    private val shopApp = ChatApplication(application.applicationContext)
+//    private val userRepository by lazy{ shopApp.userRepository }
 
     private val _authRemoteDataSource by lazy { RemoteUserRepository() }
 
@@ -79,7 +81,7 @@ class RegistrationViewModel(application: Application) : AndroidViewModel(applica
                         Log.i(TAG,"user is not exist")
                     }else{// user is exist
                         Log.i(TAG,"user is exist")
-                        setRegistrationError(app.resources.getString(R.string.user_exist))
+                        setRegistrationError("account is already used!")
                     }
                 },
                 onError = {error ->

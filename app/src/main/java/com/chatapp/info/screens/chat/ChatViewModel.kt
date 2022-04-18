@@ -5,7 +5,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.*
 import androidx.work.*
-import com.chatapp.info.ChatApplication
+
 import com.chatapp.info.data.Message
 import com.chatapp.info.data.User
 import com.chatapp.info.utils.*
@@ -16,28 +16,34 @@ import com.chatapp.info.utils.Result
 import com.chatapp.info.utils.Result.Success
 import com.chatapp.info.utils.Result.Error
 import com.chatapp.info.data.Chat
+import com.chatapp.info.repository.chat.ChatRepository
+import com.chatapp.info.repository.message.MessageRepository
+import com.chatapp.info.repository.user.UserRepository
 import kotlinx.coroutines.*
 import java.util.*
 
 
-class ChatViewModel(application: Application) : AndroidViewModel(application) {
+class ChatViewModel(
+     val chatRepository: ChatRepository,
+     val userRepository: UserRepository,
+     val messageRepository: MessageRepository): ViewModel() {
 
-
+    private val userId = userRepository.sessionManager.getUserIdFromSession()
 
     companion object{
         const val TAG = "ChatViewModel"
     }
 
-    private val worker by lazy { WorkManager.getInstance(application) }
+//    private val worker by lazy { WorkManager.getInstance(application) }
+//
+//    private val sessionManager by lazy { ChatAppSessionManager(application) }
+//    private val chatApplication by lazy { ChatApplication(application) }
 
-    private val sessionManager by lazy { ChatAppSessionManager(application) }
-    private val chatApplication by lazy { ChatApplication(application) }
+//    private val messageRepository by lazy { chatApplication.messageRepository }
+//    private val userRepository by lazy { chatApplication.userRepository }
+//    private val chatRepository by lazy { chatApplication.chatRepository }
 
-    private val messageRepository by lazy { chatApplication.messageRepository }
-    private val userRepository by lazy { chatApplication.userRepository }
-    private val chatRepository by lazy { chatApplication.chatRepository }
-
-    private val userId = sessionManager.getUserIdFromSession()
+//    private val userId = sessionManager.getUserIdFromSession()
 
     private val sendMessageWorker by lazy {
         OneTimeWorkRequest.Builder(SendMessageWork::class.java)

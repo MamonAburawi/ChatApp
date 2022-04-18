@@ -16,7 +16,7 @@ import kotlinx.coroutines.*
 class UserRepository(
     private val localUserRepository: LocalUserRepository,
     private val remoteUserRepository: RemoteUserRepository,
-    private val sessionManager: ChatAppSessionManager
+    val sessionManager: ChatAppSessionManager
 ) {
 
     private val userId = sessionManager.getUserIdFromSession()

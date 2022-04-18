@@ -3,11 +3,14 @@ package com.chatapp.info.screens.chats
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.*
-import com.chatapp.info.ChatApplication
+
 import com.chatapp.info.data.Chat
 
 import com.chatapp.info.data.Message
 import com.chatapp.info.data.User
+import com.chatapp.info.repository.chat.ChatRepository
+import com.chatapp.info.repository.message.MessageRepository
+import com.chatapp.info.repository.user.UserRepository
 import com.chatapp.info.screens.chat.ChatViewModel
 import com.chatapp.info.utils.ChatAppSessionManager
 import com.chatapp.info.utils.Result
@@ -15,18 +18,22 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class ChatsViewModel(application: Application) : AndroidViewModel(application) {
+class ChatsViewModel(
+    private val chatRepository: ChatRepository,
+    val userRepository: UserRepository,
+): ViewModel() {
 
     companion object{
         const val TAG = "ChatsViewModel"
     }
-    private val chatApplication by lazy { ChatApplication(application) }
-    private val messageRepository by lazy { chatApplication.messageRepository }
-    private val userRepository by lazy { chatApplication.userRepository }
-    private val chatRepository by lazy { chatApplication.chatRepository }
+//    private val chatApplication by lazy { ChatApplication(application) }
+//    private val messageRepository by lazy { chatApplication.messageRepository }
+//    private val userRepository by lazy { chatApplication.userRepository }
+//    private val chatRepository by lazy { chatApplication.chatRepository }
 
-    private val appSession by lazy { ChatAppSessionManager(application) }
-    private val userId = appSession.getUserIdFromSession()
+//    private val appSession by lazy { ChatAppSessionManager(application) }
+
+    private val userId = userRepository.sessionManager.getUserIdFromSession()
 
     private var _allMessages = MutableLiveData<List<Message>>()
     val allMessages: LiveData<List<Message>> get() = _allMessages

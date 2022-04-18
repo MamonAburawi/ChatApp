@@ -5,9 +5,9 @@
 
     <data>
 
-        <variable
-            name="chatViewModel"
-            type="com.chatapp.info.screens.chat.ChatViewModel" />
+<!--        <variable-->
+<!--            name="chatViewModel"-->
+<!--            type="com.chatapp.info.screens.chat.ChatViewModel" />-->
 
 <!--        <variable-->
 <!--            name="chatViewModel"-->

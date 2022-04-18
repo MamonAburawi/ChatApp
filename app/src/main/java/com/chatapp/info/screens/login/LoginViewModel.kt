@@ -3,31 +3,29 @@ package com.chatapp.info.screens.login
 
 import android.app.Application
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
 import com.chatapp.info.ChatApplication
 import com.chatapp.info.R
 import com.chatapp.info.repository.user.RemoteUserRepository
+import com.chatapp.info.repository.user.UserRepository
 import com.chatapp.info.utils.ChatAppSessionManager
 import com.chatapp.info.utils.StoreDataStatus
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.*
 
-class LoginViewModel(application: Application) : AndroidViewModel(application) {
+class LoginViewModel(private val userRepository: UserRepository): ViewModel() {
 
-    private val app = application
+//    private val app = application
     //    val userPref = SharePref(app.applicationContext, SharePref.FILE_USER)
-    private val appSessionManager = ChatAppSessionManager(application.applicationContext)
+//    private val appSessionManager = ChatAppSessionManager(application.applicationContext)
 
     companion object {
         const val TAG = "Login"
     }
 
-    private val shopApp = ChatApplication(application.applicationContext)
-    private val userRepository by lazy{ shopApp.userRepository}
+//    private val shopApp = ChatApplication(application.applicationContext)
+//    private val userRepository by lazy{ shopApp.userRepository}
 
     private val _userRemoteDataSource by lazy { RemoteUserRepository() }
 
@@ -84,7 +82,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 isExist = { isExist ->
                     if (!isExist) { // user is not exist
                         Log.i(TAG, "user is not exist")
-                        setLoginError(app.resources.getString(R.string.user_is_not_exist))
+                        setLoginError("user is not exist")
                     } else {// user is exist
                         Log.i(TAG, "user is exist")
                         signWithEmailAndPassword(email, password,isRemOn)

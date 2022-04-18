@@ -21,7 +21,7 @@ class LaunchActivity : AppCompatActivity() {
     private val sessionManager by lazy { ChatAppSessionManager(this) }
 
     private lateinit var binding: ActivityLaunchBinding
-    private val usersViewModel = viewModels<UsersViewModel>()
+//    private val usersViewModel = viewModels<UsersViewModel>()
 
 
     private lateinit var timer: CountDownTimer
@@ -46,8 +46,8 @@ class LaunchActivity : AppCompatActivity() {
     // todo make the users data live
 
     private fun initData(){
-        usersViewModel.value.hardRefreshUsesData()
-//        usersViewModel.value.hardRefreshData()
+//        usersViewModel.value.hardRefreshUsesData()
+
     }
 
 

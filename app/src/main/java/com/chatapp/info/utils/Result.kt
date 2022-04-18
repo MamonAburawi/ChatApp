@@ -1,7 +1,5 @@
 package com.chatapp.info.utils
 
-import com.chatapp.info.data.Message
-
 
 /**
  * A generic class that holds a value with its loading status.

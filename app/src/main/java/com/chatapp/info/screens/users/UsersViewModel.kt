@@ -6,23 +6,27 @@ import androidx.lifecycle.*
 import com.chatapp.info.ChatApplication
 import com.chatapp.info.data.Chat
 import com.chatapp.info.data.User
+import com.chatapp.info.repository.chat.ChatRepository
+import com.chatapp.info.repository.user.UserRepository
 import com.chatapp.info.screens.chat.ChatViewModel
 import com.chatapp.info.utils.*
 import kotlinx.coroutines.*
 
-class UsersViewModel(application: Application) : AndroidViewModel(application) {
+class UsersViewModel(
+    private val userRepository: UserRepository,
+    private val chatRepository: ChatRepository): ViewModel() {
 
     companion object{
         const val TAG = "UsersViewModel"
     }
 
-    private val sessionManager by lazy { ChatAppSessionManager(application) }
-    private val chatApplication by lazy { ChatApplication(application) }
+//    private val sessionManager by lazy { ChatAppSessionManager(application) }
+//    private val chatApplication by lazy { ChatApplication(application) }
+//
+//    private val userRepository by lazy { chatApplication.userRepository }
+//    private val chatRepository by lazy { chatApplication.chatRepository }
 
-    private val userRepository by lazy { chatApplication.userRepository }
-    private val chatRepository by lazy { chatApplication.chatRepository }
-
-    private val userId = sessionManager.getUserIdFromSession()
+    private val userId = userRepository.sessionManager.getUserIdFromSession()
 
     private var _currentUser = MutableLiveData<User>()
     val currentUser: LiveData<User> = _currentUser
@@ -49,6 +53,7 @@ class UsersViewModel(application: Application) : AndroidViewModel(application) {
     init {
 //        _signOut.value = false
 //        getCurrentUser()
+        observeLocalUsers()
     }
 
 
@@ -105,10 +110,7 @@ class UsersViewModel(application: Application) : AndroidViewModel(application) {
                             Log.d(TAG,"this new chats inserted in local ${news.size} ${news[0].chatId}")
                             chatRepository.insertMultipleChats(news)
                         }
-
                     }
-
-
                 }
             }
         }

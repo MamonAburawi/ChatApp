@@ -18,27 +18,27 @@ import com.chatapp.info.utils.ObjectListDataTypeConverter
 @Database(entities = [User::class, Message::class, Chat::class], version = 3)
 @TypeConverters( ListTypeConverter::class,DateTypeConverter::class,ObjectListDataTypeConverter::class)
 abstract class ChatAppDataBase : RoomDatabase() {
-    abstract fun userDao(): UserApi
-    abstract fun messagesDao(): MessageApi
+    abstract fun localUserApi(): UserApi
+    abstract fun localMessageApi(): MessageApi
     abstract fun localChatApi(): ChatApi
 
-    companion object {
-        @Volatile
-        private var INSTANCE: ChatAppDataBase? = null
-
-        fun getInstance(context: Context): ChatAppDataBase =
-            INSTANCE ?: synchronized(this) {
-                INSTANCE ?: buildDatabase(context).also { INSTANCE = it }
-            }
-
-        private fun buildDatabase(context: Context) =
-            Room.databaseBuilder(
-                context.applicationContext,
-                ChatAppDataBase::class.java, "ChatDataBase19"
-            )
-                .fallbackToDestructiveMigration()
-                .allowMainThreadQueries()
-                .build()
-
-    }
+//    companion object {
+//        @Volatile
+//        private var INSTANCE: ChatAppDataBase? = null
+//
+//        fun getInstance(context: Context): ChatAppDataBase =
+//            INSTANCE ?: synchronized(this) {
+//                INSTANCE ?: buildDatabase(context).also { INSTANCE = it }
+//            }
+//
+////        private fun buildDatabase(context: Context) =
+////            Room.databaseBuilder(
+////                context.applicationContext,
+////                ChatAppDataBase::class.java, "ChatDataBase19"
+////            )
+////                .fallbackToDestructiveMigration()
+////                .allowMainThreadQueries()
+////                .build()
+//
+//    }
 }

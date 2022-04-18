@@ -11,18 +11,21 @@ import androidx.databinding.DataBindingUtil
 import com.chatapp.info.R
 import com.chatapp.info.RegistrationActivity
 import com.chatapp.info.databinding.AccountBinding
+import org.koin.android.viewmodel.ext.android.sharedViewModel
 
 class Account : Fragment() {
 
 
 
-    private lateinit var viewModel: AccountViewModel
+//    private lateinit var viewModel: AccountViewModel
+    private val viewModel by sharedViewModel<AccountViewModel>()
+
     private lateinit var binding: AccountBinding
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
 
         binding = DataBindingUtil.inflate(inflater,R.layout.account,container,false)
-        viewModel = ViewModelProvider(this)[AccountViewModel::class.java]
+//        viewModel = ViewModelProvider(this)[AccountViewModel::class.java]
 
 
         setObserves()

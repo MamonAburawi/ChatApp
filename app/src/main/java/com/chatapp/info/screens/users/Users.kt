@@ -26,12 +26,13 @@ import com.chatapp.info.utils.KEY_CHAT_ID
 import com.chatapp.info.utils.KEY_RECIPIENT
 import com.chatapp.info.utils.MyOnFocusChangeListener
 import kotlinx.coroutines.*
+import org.koin.android.viewmodel.ext.android.sharedViewModel
 
 
 class Users : Fragment() {
 
+    private val viewModel by sharedViewModel<UsersViewModel>()
 
-    private val viewModel by activityViewModels<UsersViewModel>()
     private lateinit var binding : UsersBinding
     private lateinit var ctx: Activity
     private val focusChangeListener = MyOnFocusChangeListener()

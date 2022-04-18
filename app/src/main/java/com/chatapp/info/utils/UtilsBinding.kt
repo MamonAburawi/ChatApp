@@ -1,7 +1,5 @@
 package com.chatapp.info.utils
 
-import android.annotation.SuppressLint
-import android.content.Context
 import android.net.Uri
 import android.text.format.DateFormat
 import android.util.Log
@@ -14,22 +12,12 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.Priority
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.resource.bitmap.BitmapTransitionOptions.withCrossFade
-import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions
 import com.chatapp.info.R
-import com.chatapp.info.data.Message
-import com.google.firebase.storage.FirebaseStorage
 import gun0912.tedimagepicker.util.ToastUtil.context
-import kotlinx.coroutines.*
 import java.util.*
 import com.bumptech.glide.request.transition.DrawableCrossFadeFactory
 
-
-
-
-
-//@SuppressLint("StaticFieldLeak")
-//lateinit var contextx: Context
 
 @BindingAdapter("dateToString")
 fun dateToString(textView: TextView, date: Date){

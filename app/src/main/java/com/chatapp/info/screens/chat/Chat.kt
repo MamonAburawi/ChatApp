@@ -23,6 +23,7 @@ import com.chatapp.info.screens.users.UsersViewModel
 import com.chatapp.info.utils.*
 import gun0912.tedimagepicker.builder.TedImagePicker
 import gun0912.tedimagepicker.builder.type.MediaType
+import org.koin.android.viewmodel.ext.android.sharedViewModel
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -39,7 +40,7 @@ class Chat: Fragment() {
 
     private val worker by lazy { WorkManager.getInstance(requireContext()) }
     private lateinit var binding : ChatBinding
-    private val viewModel by activityViewModels<ChatViewModel>()
+    private val viewModel by sharedViewModel<ChatViewModel>()
     private val usersViewModel by activityViewModels<UsersViewModel>()
     private lateinit var chatController : ChatController
     private var selectedUriList = ArrayList<Uri>()
@@ -291,7 +292,7 @@ class Chat: Fragment() {
         viewModel.chatId.value = chatId
         viewModel.observeLocalMessages(chatId)
         viewModel.observeRemoteChat(chatId)
-        binding.chatViewModel = viewModel
+//        binding.chatViewModel = viewModel
 
         binding.lifecycleOwner = this@Chat
 

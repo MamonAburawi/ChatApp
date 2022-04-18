@@ -3,6 +3,7 @@ package com.chatapp.info.local.api
 import androidx.lifecycle.LiveData
 import androidx.room.*
 import com.chatapp.info.data.Chat
+import org.koin.dsl.ModuleDeclaration
 
 
 @Dao

@@ -14,8 +14,8 @@ import com.chatapp.info.screens.users.UsersViewModel
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private val usersViewModel by viewModels<UsersViewModel>()
-    private val chatViewModel by viewModels<ChatViewModel>()
+//    private val usersViewModel by viewModels<UsersViewModel>()
+//    private val chatViewModel by viewModels<ChatViewModel>()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,14 +32,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initData(){
-//        usersViewModel.getLocalUsers()
-        usersViewModel.observeLocalUsers()
-        usersViewModel.observeRemoteUser()
 
-        usersViewModel.observeRemoteChatsIds()
+//        usersViewModel.observeLocalUsers()
+//        usersViewModel.observeRemoteUser()
+//
+//        usersViewModel.observeRemoteChatsIds()
 
-        chatViewModel.observeLocalMessages()
-//        chatViewModel.observeLocalChats()
+//        chatViewModel.observeLocalMessages()
+
     }
 
     private fun setUpNav() {
